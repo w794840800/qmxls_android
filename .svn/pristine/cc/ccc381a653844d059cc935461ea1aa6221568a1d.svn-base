@@ -1,0 +1,49 @@
+package com.qimai.xinlingshou.model;
+
+import com.qimai.xinlingshou.Retrofit.RetrofitUtils;
+import com.qimai.xinlingshou.callback.NetWorkCallBack;
+import com.qimai.xinlingshou.callback.RequestObserver;
+
+import io.reactivex.disposables.Disposable;
+
+public class PayModel extends BaseModel{
+
+    /**
+     * 余额支付
+     * */
+    public void blancePay(String user_id,String pay_balance,NetWorkCallBack netWorkCallBack){
+
+        changeThread(RetrofitUtils.getRetrofitUtils().getApiService()
+                        .balancePay(user_id, pay_balance)
+                , new RequestObserver() {
+                    @Override
+                    protected void onStart(Disposable d) {
+
+                        addDispose(d);
+                    }
+
+                    @Override
+                    protected void onSucess(Object data) {
+
+                    }
+
+                    @Override
+                    protected void onFailed(String message) {
+
+                    }
+
+                });
+
+
+    }
+
+
+    /**
+     * 余额查询
+     * */
+    public void queryBlance(String userId,NetWorkCallBack netWorkCallBack){
+
+
+    }
+
+}

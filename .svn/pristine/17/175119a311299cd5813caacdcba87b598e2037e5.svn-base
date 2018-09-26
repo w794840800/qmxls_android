@@ -1,0 +1,89 @@
+-injars /home/wanglei/Documents/yunshang/qmxls_android/app/libs/xUtils-2.6.14.jar(**.class)
+-injars /home/wanglei/Documents/yunshang/qmxls_android/app/libs/core-3.3.0.jar(**.class)
+-injars /home/wanglei/.gradle/caches/transforms-1/files-1.1/design-27.1.1.aar/ccfc3195c53a47a61d3b53f9086bbd04/jars/classes.jar(**.class)
+-injars /home/wanglei/.gradle/caches/transforms-1/files-1.1/multidex-1.0.2.aar/17ef5a7b291a8402b1da20bc783ad8eb/jars/classes.jar(**.class)
+-injars /home/wanglei/.gradle/caches/transforms-1/files-1.1/xutils-3.3.36.aar/0bf8e9cb7425e4b607cba382fde43524/jars/classes.jar(**.class)
+-injars /home/wanglei/.gradle/caches/modules-2/files-2.1/com.squareup.okhttp3/logging-interceptor/3.5.0/94c11f915bfe1aeaa5ef6351ddfbe58bae1ea397/logging-interceptor-3.5.0.jar(**.class)
+-injars /home/wanglei/.gradle/caches/modules-2/files-2.1/com.squareup.okhttp3/okhttp/3.5.0/4b0bb6bfbecbdd42b97ff400af342bfe7f32bc83/okhttp-3.5.0.jar(**.class)
+-injars /home/wanglei/.gradle/caches/modules-2/files-2.1/org.greenrobot/eventbus/3.1.1/5cd91fd014f5b72292f959748c20a2cefefae77d/eventbus-3.1.1.jar(**.class)
+-injars /home/wanglei/.gradle/caches/modules-2/files-2.1/com.nostra13.universalimageloader/universal-image-loader/1.9.3/a85588bec3e2c4584d593d3f15df1677321bca72/universal-image-loader-1.9.3.jar(**.class)
+-injars /home/wanglei/.gradle/caches/transforms-1/files-1.1/OkUSB-1.0.0.aar/5a6a89684766aaf257ebc3c64c8eeeec/jars/classes.jar(**.class)
+-injars /home/wanglei/.gradle/caches/transforms-1/files-1.1/crashreport-2.6.6.1.aar/ae6af958dad961cbe3b1d8d6f736bbae/jars/classes.jar(**.class)
+-injars /home/wanglei/.gradle/caches/transforms-1/files-1.1/nativecrashreport-3.3.1.aar/eb86a194451dcf8ca8966489a65b0283/jars/classes.jar(**.class)
+-injars /home/wanglei/.gradle/caches/transforms-1/files-1.1/zloading-1.0.11.aar/d34fa0a1e85c4e54ebfef2e915eaf8b6/jars/classes.jar(**.class)
+-injars /home/wanglei/.gradle/caches/transforms-1/files-1.1/DS_Lib-1.0.11.aar/95807a3b09a607ef616b724454c495a2/jars/classes.jar(**.class)
+-injars /home/wanglei/.gradle/caches/modules-2/files-2.1/com.alibaba/fastjson/1.1.67.android/66b679b7105fc92e5ea42bedc02a0581ad09336c/fastjson-1.1.67.android.jar(**.class)
+-injars /home/wanglei/.gradle/caches/modules-2/files-2.1/com.google.code.gson/gson/2.8.1/2a8e0aa38a2e21cb39e2f5a7d6704cbdc941da0/gson-2.8.1.jar(**.class)
+-injars /home/wanglei/.gradle/caches/modules-2/files-2.1/org.apache.httpcomponents/httpcore/4.4.4/b31526a230871fbe285fbcbe2813f9c0839ae9b0/httpcore-4.4.4.jar(**.class)
+-injars /home/wanglei/.gradle/caches/transforms-1/files-1.1/library-1.0.7.aar/05ba4b765a89526e4a757c12fbea15e0/jars/classes.jar(**.class)
+-injars /home/wanglei/.gradle/caches/transforms-1/files-1.1/core-2.0.0.aar/7073a141cc12bac47f4cbafefabaa089/jars/classes.jar(**.class)
+-injars /home/wanglei/.gradle/caches/modules-2/files-2.1/com.github.bumptech.glide/glide/3.7.0/9e9eeaf9948ee4d6c3ab354e8dc14368f16994a4/glide-3.7.0.jar(**.class)
+-injars /home/wanglei/.gradle/caches/transforms-1/files-1.1/rxbinding-2.1.1.aar/cf5e0f5846956f6a1416aa906ca72ce1/jars/classes.jar(**.class)
+-injars /home/wanglei/.gradle/caches/transforms-1/files-1.1/rxandroid-2.0.0.aar/68187ea497d2dba693adf3a9e434cb4f/jars/classes.jar(**.class)
+-injars /home/wanglei/.gradle/caches/modules-2/files-2.1/io.reactivex.rxjava2/rxjava/2.1.16/14f0f8c3becc94ac89a8a84fc547dc228e9bd5a1/rxjava-2.1.16.jar(**.class)
+-injars /home/wanglei/.gradle/caches/transforms-1/files-1.1/appcompat-v7-27.1.1.aar/eff2bbe93807d12a8d061b9dbc657709/jars/classes.jar(**.class)
+-injars /home/wanglei/.gradle/caches/transforms-1/files-1.1/constraint-layout-1.1.0.aar/11c0795bf62dde629cbc52364645bbfe/jars/classes.jar(**.class)
+-injars /home/wanglei/.gradle/caches/transforms-1/files-1.1/recyclerview-v7-27.1.1.aar/7140ec38d8b7ff2564a196da12b0037c/jars/classes.jar(**.class)
+-injars /home/wanglei/.gradle/caches/transforms-1/files-1.1/butterknife-8.8.1.aar/e5af49ed7efce328c5b030809e6b7a01/jars/classes.jar(**.class)
+-injars /home/wanglei/.gradle/caches/transforms-1/files-1.1/support-v4-27.1.1.aar/cea262d9f306779e17ebf0170cb7ac2a/jars/classes.jar(**.class)
+-injars /home/wanglei/.gradle/caches/transforms-1/files-1.1/transition-27.1.1.aar/90cb68ced062dac1c0da8910e304bdca/jars/classes.jar(**.class)
+-injars /home/wanglei/.gradle/caches/modules-2/files-2.1/com.squareup.okio/okio/1.11.0/840897fcd7223a8143f1d9b6f69714e7be34fd50/okio-1.11.0.jar(**.class)
+-injars /home/wanglei/.gradle/caches/transforms-1/files-1.1/support-fragment-27.1.1.aar/8b30828bbf38cd9db0da40656e545d6f/jars/classes.jar(**.class)
+-injars /home/wanglei/.gradle/caches/transforms-1/files-1.1/animated-vector-drawable-27.1.1.aar/2b1b86afb7c0fa0a7e9000e5ddb58621/jars/classes.jar(**.class)
+-injars /home/wanglei/.gradle/caches/transforms-1/files-1.1/support-core-ui-27.1.1.aar/2f4a0a8039e3575cc68132c8c2290209/jars/classes.jar(**.class)
+-injars /home/wanglei/.gradle/caches/modules-2/files-2.1/com.jakewharton/butterknife-annotations/8.8.1/bc373fb6bc7bca3035041b924f158fd2b946ee8d/butterknife-annotations-8.8.1.jar(**.class)
+-injars /home/wanglei/.gradle/caches/transforms-1/files-1.1/support-media-compat-27.1.1.aar/c0471df7f6e6bc3d631fb0cab858fca9/jars/classes.jar(**.class)
+-injars /home/wanglei/.gradle/caches/transforms-1/files-1.1/support-core-utils-27.1.1.aar/1a378a4bbe494501bd537cc6fb300519/jars/classes.jar(**.class)
+-injars /home/wanglei/.gradle/caches/transforms-1/files-1.1/support-vector-drawable-27.1.1.aar/61001457764508980524919b57fbb1b2/jars/classes.jar(**.class)
+-injars /home/wanglei/.gradle/caches/transforms-1/files-1.1/support-compat-27.1.1.aar/5440bbe67a131f785d481cca2f38ba16/jars/classes.jar(**.class)
+-injars /home/wanglei/.gradle/caches/modules-2/files-2.1/com.android.support/support-annotations/27.1.1/39ded76b5e1ce1c5b2688e1d25cdc20ecee32007/support-annotations-27.1.1.jar(**.class)
+-injars /home/wanglei/.gradle/caches/modules-2/files-2.1/org.reactivestreams/reactive-streams/1.0.2/323964c36556eb0e6209f65c1cef72b53b461ab8/reactive-streams-1.0.2.jar(**.class)
+-injars /home/wanglei/.gradle/caches/modules-2/files-2.1/com.android.support.constraint/constraint-layout-solver/1.1.0/931532e953a477f876f2de18c2e7f16eee01078f/constraint-layout-solver-1.1.0.jar(**.class)
+-injars /home/wanglei/.gradle/caches/transforms-1/files-1.1/livedata-core-1.1.0.aar/07e5623a283935f82f25ad6f0e2dbc90/jars/classes.jar(**.class)
+-injars /home/wanglei/.gradle/caches/transforms-1/files-1.1/viewmodel-1.1.0.aar/22cec52361b609537ade76ec3c64121e/jars/classes.jar(**.class)
+-injars /home/wanglei/.gradle/caches/transforms-1/files-1.1/runtime-1.1.0.aar/8ae1faee0e197b95ca270e5279c87217/jars/classes.jar(**.class)
+-injars /home/wanglei/.gradle/caches/modules-2/files-2.1/android.arch.lifecycle/common/1.1.0/edf3f7bfb84a7521d0599efa3b0113a0ee90f85/common-1.1.0.jar(**.class)
+-injars /home/wanglei/.gradle/caches/transforms-1/files-1.1/runtime-1.1.0.aar/f08a5ec7cd4f859a7be0533c25171821/jars/classes.jar(**.class)
+-injars /home/wanglei/.gradle/caches/modules-2/files-2.1/android.arch.core/common/1.1.0/8007981f7d7540d89cd18471b8e5dcd2b4f99167/common-1.1.0.jar(**.class)
+-injars /home/wanglei/Documents/yunshang/qmxls_android/app/build/intermediates/classes/debug(**.class)
+-outjars /home/wanglei/Documents/yunshang/qmxls_android/app/build/intermediates/multi-dex/debug/componentClasses.jar
+
+-libraryjars /home/wanglei/Android/Sdk/build-tools/26.0.2/lib/shrinkedAndroid.jar
+
+-forceprocessing
+-dontoptimize
+-dontobfuscate
+-dontusemixedcaseclassnames
+-dontpreverify
+-dontnote **
+-dontwarn **
+-printconfiguration /home/wanglei/Documents/yunshang/qmxls_android/app/build/intermediates/multi-dex/debug/components.flags
+
+
+# Referenced at /home/wanglei/Documents/yunshang/qmxls_android/app/build/intermediates/manifests/full/debug/AndroidManifest.xml:41
+-keep class com.example.niu.myapplication.App {
+    <init>(...);
+}
+
+-keep public class * extends android.app.Instrumentation {
+    <init>();
+}
+
+-keep public class * extends android.app.Application {
+    <init>();
+    void attachBaseContext(android.content.Context);
+}
+
+-keep public class * extends android.app.backup.BackupAgent {
+    <init>();
+}
+
+-keep public class * extends java.lang.annotation.Annotation {
+    <fields>;
+    <methods>;
+}
+
+-keep class com.android.tools.ir.** {
+    <fields>;
+    <methods>;
+}

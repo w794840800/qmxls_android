@@ -1,0 +1,11 @@
+package com.qimai.xinlingshou.callback;
+
+public interface BlancePayCallBack {
+
+    void onPaySucess(int type,String leaveMoney);
+
+    //支付失败
+    void onPayFailed(String msg);
+   //取消支付
+    void onPayCancel();
+}

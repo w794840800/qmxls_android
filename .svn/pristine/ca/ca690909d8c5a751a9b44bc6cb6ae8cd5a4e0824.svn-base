@@ -1,0 +1,142 @@
+package com.qimai.xinlingshou.bean;
+
+import java.util.List;
+
+/**
+ * Created by wanglei on 18-7-11.
+ */
+
+public class SecondScreenInfo {
+
+    public static final String UPDATE = "update";
+    public static final String PAYSUCESS = "paysucess";
+    public static final String ADD_VIP_INFO = "addVipInfo";
+    public static final String REMOVE_VIP_INFO = "removeVipInfo";
+    public static final String BEGINPAY = "begin_pay";
+    public static final String CANCELPAY = "cancel_pay";
+
+    public static final String PENDINGORDERSUCESS = "pendingOrderSucess";
+
+
+    @Override
+    public String toString() {
+        return "SecondScreenInfo{" +
+                "type='" + type + '\'' +
+                ", totalCostMoney='" + totalCostMoney + '\'' +
+                ", totalDiscountMoney='" + totalDiscountMoney + '\'' +
+                ", goodsBeanList=" + goodsBeanList +
+                '}';
+    }
+
+    private String type;
+
+    //这里是副屏的全部商品价格不包括优惠后的价格
+    private String totalCostMoney;
+    private String totalDiscountMoney;
+    //这个是有优惠券就减去优惠券，没有就不减
+    private String totalActualPay;
+    private List<goodsBean>goodsBeanList;
+
+    //优惠信息
+    private MoneyBean moneyBean;
+    private VipInfo vipInfo;
+
+
+   // 0,1,2 按顺序排
+    private int payMethod;
+    //实际用户付的钱
+    private String acual_collect_money;
+
+    private String zhaoling;
+
+    private String user_need_pay;
+
+    public String getTotalCostMoney() {
+        return totalCostMoney;
+    }
+
+    public void setTotalCostMoney(String totalCostMoney) {
+        this.totalCostMoney = totalCostMoney;
+    }
+
+    public String getTotalDiscountMoney() {
+        return totalDiscountMoney;
+    }
+
+    public void setTotalDiscountMoney(String totalDiscountMoney) {
+        this.totalDiscountMoney = totalDiscountMoney;
+    }
+
+    public List<goodsBean> getGoodsBeanList() {
+        return goodsBeanList;
+    }
+
+    public void setGoodsBeanList(List<goodsBean> goodsBeanList) {
+        this.goodsBeanList = goodsBeanList;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    public VipInfo getVipInfo() {
+        return vipInfo;
+    }
+
+    public void setVipInfo(VipInfo vipInfo) {
+        this.vipInfo = vipInfo;
+    }
+
+
+    public MoneyBean getMoneyBean() {
+        return moneyBean;
+    }
+
+    public void setMoneyBean(MoneyBean moneyBean) {
+        this.moneyBean = moneyBean;
+    }
+
+    public String getTotalActualPay() {
+        return totalActualPay;
+    }
+
+    public void setTotalActualPay(String totalActualPay) {
+        this.totalActualPay = totalActualPay;
+    }
+
+    public String getAcual_collect_money() {
+        return acual_collect_money;
+    }
+
+    public void setAcual_collect_money(String acual_collect_money) {
+        this.acual_collect_money = acual_collect_money;
+    }
+
+    public String getZhaoling() {
+        return zhaoling;
+    }
+
+    public void setZhaoling(String zhaoling) {
+        this.zhaoling = zhaoling;
+    }
+
+    public int getPayMethod() {
+        return payMethod;
+    }
+
+    public void setPayMethod(int payMethod) {
+        this.payMethod = payMethod;
+    }
+
+    public String getUser_need_pay() {
+        return user_need_pay;
+    }
+
+    public void setUser_need_pay(String user_need_pay) {
+        this.user_need_pay = user_need_pay;
+    }
+}

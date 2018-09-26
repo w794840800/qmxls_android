@@ -1,0 +1,83 @@
+// Generated code from Butter Knife. Do not modify!
+package com.qimai.xinlingshou.activity;
+
+import android.support.annotation.CallSuper;
+import android.support.annotation.UiThread;
+import android.support.v7.widget.RecyclerView;
+import android.view.View;
+import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
+import android.widget.TextView;
+import butterknife.Unbinder;
+import butterknife.internal.Utils;
+import com.qimai.xinlingshou.R;
+import java.lang.IllegalStateException;
+import java.lang.Override;
+
+public class ViceActivity_ViewBinding implements Unbinder {
+  private ViceActivity target;
+
+  @UiThread
+  public ViceActivity_ViewBinding(ViceActivity target) {
+    this(target, target.getWindow().getDecorView());
+  }
+
+  @UiThread
+  public ViceActivity_ViewBinding(ViceActivity target, View source) {
+    this.target = target;
+
+    target.tvStatus = Utils.findRequiredViewAsType(source, R.id.tv_status, "field 'tvStatus'", TextView.class);
+    target.tvZhekou = Utils.findRequiredViewAsType(source, R.id.tv_zhekou, "field 'tvZhekou'", TextView.class);
+    target.rlYouhui = Utils.findRequiredViewAsType(source, R.id.rl_youhui, "field 'rlYouhui'", RelativeLayout.class);
+    target.tvVipZhekou = Utils.findRequiredViewAsType(source, R.id.tv_vip_zhekou, "field 'tvVipZhekou'", TextView.class);
+    target.rlVipYouhui = Utils.findRequiredViewAsType(source, R.id.rl_vip_youhui, "field 'rlVipYouhui'", RelativeLayout.class);
+    target.tvTotalPay = Utils.findRequiredViewAsType(source, R.id.tv_total_pay, "field 'tvTotalPay'", TextView.class);
+    target.tvActualPay = Utils.findRequiredViewAsType(source, R.id.tv_actual_pay, "field 'tvActualPay'", TextView.class);
+    target.rlActualPay = Utils.findRequiredViewAsType(source, R.id.rl_actual_pay, "field 'rlActualPay'", RelativeLayout.class);
+    target.tvZhaoling = Utils.findRequiredViewAsType(source, R.id.tv_zhaoling, "field 'tvZhaoling'", TextView.class);
+    target.rlZhaoling = Utils.findRequiredViewAsType(source, R.id.rl_zhaoling, "field 'rlZhaoling'", RelativeLayout.class);
+    target.rlNeedPay = Utils.findRequiredViewAsType(source, R.id.rl_need_pay, "field 'rlNeedPay'", RelativeLayout.class);
+    target.llTop = Utils.findRequiredViewAsType(source, R.id.ll_top, "field 'llTop'", RelativeLayout.class);
+    target.tvTotalMoney = Utils.findRequiredViewAsType(source, R.id.tv_total_money, "field 'tvTotalMoney'", TextView.class);
+    target.llBottomMenu = Utils.findRequiredViewAsType(source, R.id.ll_bottom_menu, "field 'llBottomMenu'", LinearLayout.class);
+    target.llEmptyGoods = Utils.findRequiredViewAsType(source, R.id.ll_empty_goods, "field 'llEmptyGoods'", LinearLayout.class);
+    target.rvSelectGoods = Utils.findRequiredViewAsType(source, R.id.rv_select_goods, "field 'rvSelectGoods'", RecyclerView.class);
+    target.llGoodsItems = Utils.findRequiredViewAsType(source, R.id.ll_goods_items, "field 'llGoodsItems'", RelativeLayout.class);
+    target.llLeftContainer = Utils.findRequiredViewAsType(source, R.id.ll_left_container, "field 'llLeftContainer'", LinearLayout.class);
+    target.llPaySucess = Utils.findRequiredViewAsType(source, R.id.ll_pay_sucess, "field 'llPaySucess'", LinearLayout.class);
+    target.tvVipName = Utils.findRequiredViewAsType(source, R.id.tv_vip_name, "field 'tvVipName'", TextView.class);
+    target.tvVipPhone = Utils.findRequiredViewAsType(source, R.id.tv_vip_phone, "field 'tvVipPhone'", TextView.class);
+    target.llVipInfo = Utils.findRequiredViewAsType(source, R.id.ll_vip_info, "field 'llVipInfo'", LinearLayout.class);
+  }
+
+  @Override
+  @CallSuper
+  public void unbind() {
+    ViceActivity target = this.target;
+    if (target == null) throw new IllegalStateException("Bindings already cleared.");
+    this.target = null;
+
+    target.tvStatus = null;
+    target.tvZhekou = null;
+    target.rlYouhui = null;
+    target.tvVipZhekou = null;
+    target.rlVipYouhui = null;
+    target.tvTotalPay = null;
+    target.tvActualPay = null;
+    target.rlActualPay = null;
+    target.tvZhaoling = null;
+    target.rlZhaoling = null;
+    target.rlNeedPay = null;
+    target.llTop = null;
+    target.tvTotalMoney = null;
+    target.llBottomMenu = null;
+    target.llEmptyGoods = null;
+    target.rvSelectGoods = null;
+    target.llGoodsItems = null;
+    target.llLeftContainer = null;
+    target.llPaySucess = null;
+    target.tvVipName = null;
+    target.tvVipPhone = null;
+    target.llVipInfo = null;
+  }
+}

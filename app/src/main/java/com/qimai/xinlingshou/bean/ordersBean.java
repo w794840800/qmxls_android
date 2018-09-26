@@ -1,0 +1,454 @@
+package com.qimai.xinlingshou.bean;
+
+import com.google.gson.annotations.Expose;
+import com.google.gson.annotations.SerializedName;
+
+import org.litepal.crud.LitePalSupport;
+
+import java.io.Serializable;
+
+/**
+ * 订单
+ * Created by wanglei on 18-5-19.
+ */
+
+public class ordersBean extends LitePalSupport implements Serializable{
+    private int id;
+    /**
+     * 是否同步
+     */
+    private String isauto;
+    private int goodsPic;
+    private String goodsName;
+    private double price;
+    private String goodsId;
+    private String unit;
+    private int number;
+    private String changeType;
+    private String goodsimg;
+   @Expose
+    @SerializedName("user_id")
+    private String userid;
+    /**
+     * 优惠券优惠金额
+     */
+    @Expose
+    private String  coupon_minus;
+    /**
+     *   会员卡优惠
+     */
+    @Expose
+    private String  card_minus;
+    /**
+     * 优惠总金额
+     */
+    @Expose
+    private String  minus_amount;
+    /**
+     * 本地订单号
+     */
+    private String   order;
+    /**
+     * 是否支付
+     */
+    private String   ispay;
+    /**
+     * 支付方式（）
+     */
+    @Expose
+    private String   payment_id;
+//    /**
+//     * 实付金额
+//     */
+//    private String   shifuprice;
+//    /**
+//     * 应付金额
+//     */
+//    private String   yingfuprice;
+    /**
+     * 会员
+     */
+    private String   huiyuan = "";
+    /**
+     * 订单总金额
+     */
+    @Expose
+    private String   total_amount;
+    /**
+     * 第三方支付金额
+     */
+    @Expose
+    private String  amount = "0.00";
+    /**
+     *会员卡id
+     */
+    @Expose
+    private String card_id = "";
+    /**
+     * 优惠券id
+     */
+    @Expose
+    private String   coupon_id = "";
+    @Expose
+    private String   user_remarks = "";  //用户备注
+    @Expose
+    private String   seller_remarks = "";//商家备注
+
+    @SerializedName("items")
+  @Expose
+    private String orderInfo;
+
+
+    //private List<orderIteminfo>orderIteminfoList = new ArrayList<orderIteminfo>();
+    /**
+     *   服务器返回第三方支付交易号
+     * */
+    @Expose
+    private String  trade_no = "";
+
+    /**
+     * 同步订单后返回的订单号
+     * */
+    private String server_order_no = "";
+
+
+    //订单状态
+    @Expose
+    private int status;
+
+
+    //是否使用余额 0- 未使用 1- 使用
+    @Expose
+    private int use_wallet;
+
+    //使用余额的金额
+    @Expose
+    private String wallet_amount;
+
+
+    public int getStatus() {
+        return status;
+    }
+
+    public void setStatus(int status) {
+        this.status = status;
+    }
+
+    public int getUse_wallet() {
+        return use_wallet;
+    }
+
+    public void setUse_wallet(int use_wallet) {
+        this.use_wallet = use_wallet;
+    }
+
+    public String getWallet_amount() {
+        return wallet_amount;
+    }
+
+    public void setWallet_amount(String wallet_amount) {
+        this.wallet_amount = wallet_amount;
+    }
+
+
+    public String getUserid() {
+        return userid;
+    }
+
+    public void setUserid(String userid) {
+        this.userid = userid;
+    }
+
+    public String getUser_remarks() {
+        return user_remarks;
+    }
+
+    public void setUser_remarks(String user_remarks) {
+        this.user_remarks = user_remarks;
+    }
+
+    public String getSeller_remarks() {
+        return seller_remarks;
+    }
+
+    public void setSeller_remarks(String seller_remarks) {
+        this.seller_remarks = seller_remarks;
+    }
+
+
+
+    public String getIsauto() {
+        return isauto;
+    }
+
+    public void setIsauto(String isauto) {
+        this.isauto = isauto;
+    }
+
+    public String getCoupon_minus() {
+        return coupon_minus;
+    }
+
+    public void setCoupon_minus(String coupon_minus) {
+        this.coupon_minus = coupon_minus;
+    }
+
+    public String getCard_minus() {
+        return card_minus;
+    }
+
+    public void setCard_minus(String card_minus) {
+        this.card_minus = card_minus;
+    }
+
+    public String getMinus_amount() {
+        return minus_amount;
+    }
+
+    public void setMinus_amount(String minus_amount) {
+        this.minus_amount = minus_amount;
+    }
+
+    public String getTrade_no() {
+        return trade_no;
+    }
+
+    public void setTrade_no(String trade_no) {
+        this.trade_no = trade_no;
+    }
+
+    public String getIspay() {
+        return ispay;
+    }
+
+    public void setIspay(String ispay) {
+        this.ispay = ispay;
+    }
+
+    public String getPayment_id() {
+        return payment_id;
+    }
+
+    public void setPayment_id(String payment_id) {
+        this.payment_id = payment_id;
+    }
+
+    public String getHuiyuan() {
+        return huiyuan;
+    }
+
+    public void setHuiyuan(String huiyuan) {
+        this.huiyuan = huiyuan;
+    }
+
+    public String getTotal_amount() {
+        return total_amount;
+    }
+
+    public void setTotal_amount(String total_amount) {
+        this.total_amount = total_amount;
+    }
+
+    public String getAmount() {
+        return amount;
+    }
+
+    public void setAmount(String amount) {
+        this.amount = amount;
+    }
+
+    public String getCard_id() {
+        return card_id;
+    }
+
+    public void setCard_id(String card_id) {
+        this.card_id = card_id;
+    }
+
+    public String getCoupon_id() {
+        return coupon_id;
+    }
+
+    public void setCoupon_id(String coupon_id) {
+        this.coupon_id = coupon_id;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public ordersBean(String goodsimg, String goodsName,
+                      double price, int number, String goodsId , String unit) {
+        this.goodsName = goodsName;
+        this.goodsimg = goodsimg;
+        this.price = price;
+        this.goodsId = goodsId;
+        this.unit = unit;
+        this.number = number;
+    }
+
+    public String getGoodsimg() {
+        return goodsimg;
+    }
+
+    public void setGoodsimg(String goodsimg) {
+        this.goodsimg = goodsimg;
+    }
+
+    public String getUnit() {
+        return unit;
+    }
+
+    public void setUnit(String unit) {
+        this.unit = unit;
+    }
+
+    public int getGoodsPic() {
+        return goodsPic;
+    }
+
+    public ordersBean(String goodsimg, String goodsName, double price, int number, String goodsId ) {
+        this.goodsimg = goodsimg;
+        this.goodsName = goodsName;
+        this.price = price;
+        this.goodsId = goodsId;
+        this.number = number;
+    }
+
+    public ordersBean(String goodsimg, String goodsName, double price) {
+        this.goodsimg = goodsimg;
+        this.goodsName = goodsName;
+        this.price = price;
+    }
+
+    public ordersBean() {
+    }
+
+    public ordersBean(String goodsimg, String goodsName, double price, int number) {
+        this.goodsimg = goodsimg;
+        this.goodsName = goodsName;
+        this.price = price;
+        this.number = number;
+    }
+
+    public void setGoodsPic(int goodsPic) {
+        this.goodsPic = goodsPic;
+    }
+
+    public String getGoodsName() {
+        return goodsName;
+    }
+
+    public void setGoodsName(String goodsName) {
+        this.goodsName = goodsName;
+    }
+
+
+    public double getPrice() {
+        return price;
+    }
+
+    public void setPrice(double price) {
+        this.price = price;
+    }
+
+
+    public int getNumber() {
+        return number;
+    }
+
+    public void setNumber(int number) {
+        this.number = number;
+    }
+
+    public String getGoodsId() {
+        return goodsId;
+    }
+
+    public void setGoodsId(String goodsId) {
+        this.goodsId = goodsId;
+    }
+
+    public String getChangeType() {
+        return changeType;
+    }
+
+    public void setChangeType(String changeType) {
+        this.changeType = changeType;
+    }
+
+
+
+    public String getService_orderId() {
+        return trade_no;
+    }
+
+    public void setService_orderId(String trade_no) {
+        this.trade_no = trade_no;
+    }
+
+
+    public String getOrderInfo() {
+        return orderInfo;
+    }
+
+    public void setOrderInfo(String orderInfo) {
+        this.orderInfo = orderInfo;
+    }
+
+    public String getOrder() {
+        return order;
+    }
+
+    public void setOrder(String order) {
+        this.order = order;
+    }
+
+    public String getServer_order_no() {
+        return server_order_no;
+    }
+
+    public void setServer_order_no(String server_order_no) {
+        this.server_order_no = server_order_no;
+    }
+
+    @Override
+    public String toString() {
+        return "ordersBean{" +
+                "id=" + id +
+                ", isauto='" + isauto + '\'' +
+                ", goodsPic=" + goodsPic +
+                ", goodsName='" + goodsName + '\'' +
+                ", price=" + price +
+                ", goodsId='" + goodsId + '\'' +
+                ", unit='" + unit + '\'' +
+                ", number=" + number +
+                ", changeType='" + changeType + '\'' +
+                ", goodsimg='" + goodsimg + '\'' +
+                ", userid='" + userid + '\'' +
+                ", coupon_minus='" + coupon_minus + '\'' +
+                ", card_minus='" + card_minus + '\'' +
+                ", minus_amount='" + minus_amount + '\'' +
+                ", order='" + order + '\'' +
+                ", ispay='" + ispay + '\'' +
+                ", payment_id='" + payment_id + '\'' +
+                ", huiyuan='" + huiyuan + '\'' +
+                ", total_amount='" + total_amount + '\'' +
+                ", amount='" + amount + '\'' +
+                ", card_id='" + card_id + '\'' +
+                ", coupon_id='" + coupon_id + '\'' +
+                ", user_remarks='" + user_remarks + '\'' +
+                ", seller_remarks='" + seller_remarks + '\'' +
+                ", orderInfo='" + orderInfo + '\'' +
+                ", trade_no='" + trade_no + '\'' +
+                ", server_order_no='" + server_order_no + '\'' +
+                ", status=" + status +
+                ", use_wallet=" + use_wallet +
+                ", wallet_amount='" + wallet_amount + '\'' +
+                '}';
+    }
+}

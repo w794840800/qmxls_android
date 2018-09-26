@@ -1,0 +1,72 @@
+package com.qimai.xinlingshou.calculate;
+
+import android.util.Log;
+
+import com.qimai.xinlingshou.bean.MoneyBean;
+import com.qimai.xinlingshou.utils.DecimalFormatUtils;
+
+/**
+ * Created by wanglei on 18-7-3.
+ */
+
+public class VipCrashSuper extends DisCountCrash {
+
+    private static final String TAG = "VipCrashSuper";
+    private double discount;
+
+    public VipCrashSuper(String discount){
+
+        this.discount = Double.parseDouble(discount);
+
+        Log.d(TAG, "VipCrashSuper: 1 discount= "+discount+" 2 discount= "+discount);
+
+    }
+
+    private MoneyBean countDiscountMoney(double money) {
+
+        double discountPricr = (1-discount)*money;
+
+        moneyBean.setVipDiscount(Double.
+                parseDouble(DecimalFormatUtils.doubleToMoneyWithOutSymbol(discountPricr)));
+        Log.d(TAG, "countDiscountMoney: discount= "+discount+" money= "+money+" discountPricr= "
+        +discountPricr);
+        //DecimalFormat decimalFormat = new DecimalFormat("0.00");
+
+        moneyBean.setDiscountMoney(Double.
+                parseDouble(DecimalFormatUtils.doubleToMoneyWithOutSymbol(discountPricr)));
+
+        return moneyBean;
+    }
+
+    @Override
+    public MoneyBean calculateMoney() {
+
+        moneyBean =  crashSuper.calculateMoney();
+       // ToastUtils.showShortToast(moneyBean.toString());
+        Log.d(TAG, "calculateMoney:111 moneyBean = "+moneyBean.toString());
+        moneyBean =countDiscountMoney(moneyBean.getTotalMoney());
+        Log.d(TAG, "calculateMoney: 222 moneyBean= "+moneyBean.toString());
+        return moneyBean;
+    }
+
+   /* public static void main(String[]args){
+
+        NormalCrash normalCrash = new NormalCrash((double) 128);
+
+        VipCrashSuper vipCrashSuper = new VipCrashSuper(0.8+"");
+
+        MianzhiCrash mianzhiCrash = new MianzhiCrash(50,10);
+
+     *//*   ZhikouCrash zhikouCrash = new ZhikouCrash(0.8);
+        vipCrashSuper.attach(normalCrash);
+
+        //mianzhiCrash.attach(vipCrashSuper);
+
+        zhikouCrash.attach(vipCrashSuper);
+
+        //MoneyBean moneyBean = mianzhiCrash.calculateMoney();
+        MoneyBean moneyBean = zhikouCrash.calculateMoney();
+        System.out.println(moneyBean.toString());*//*
+    }*/
+
+}

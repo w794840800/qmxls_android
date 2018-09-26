@@ -1,0 +1,61 @@
+package com.qimai.xinlingshou.Retrofit;
+
+import com.qimai.xinlingshou.bean.NetWorkBean;
+import com.qimai.xinlingshou.bean.UserIdBean;
+
+import java.util.HashMap;
+
+import io.reactivex.Observable;
+import io.reactivex.Observer;
+import retrofit2.http.Field;
+import retrofit2.http.FieldMap;
+import retrofit2.http.FormUrlEncoded;
+import retrofit2.http.GET;
+import retrofit2.http.POST;
+import retrofit2.http.Path;
+import retrofit2.http.Query;
+
+public interface ApiService {
+
+
+    @GET("marketing/recharge-card/pay-code")
+    Observable<NetWorkBean<UserIdBean>> changeScanCodeToId(@Query("code") String code);
+
+    @GET("reta/cashier/user-by-mobile")
+    Observable getVipInfo(@Query("mobile")String mobile,@Query("user_id")String userId
+    ,@Query("type")int type);
+
+
+    //获取用户余额
+    @GET("reta/order/wallet-info")
+    Observable<NetWorkBean> getBalance(@Query("user_id")String user_id);
+
+    //余额减扣
+    @FormUrlEncoded
+    @POST("reta/order/wealth-deduct")
+    Observable<NetWorkBean> balancePay(@Field("user_id") String user_id,@Field("order_no")String order_no);
+
+
+    //取消余额支付
+    @FormUrlEncoded
+    @POST("reta/order/cancel")
+    Observable<NetWorkBean> cancelBalance(@Field("user_id") String orderId);
+
+
+    //上传订单信息
+    @FormUrlEncoded
+    @POST("reta/order/receive")
+    Observable<NetWorkBean> uploadOrder(@FieldMap HashMap<String,String>hashMap);
+
+
+    //单余额支付完成同步订单状态
+    @FormUrlEncoded
+    @POST("reta/order/update-pos-order-status")
+    Observable<NetWorkBean> asyncBalanceOrderStatus(@Field("order_no")String order_no
+    ,@Field("trade_no")String trade_no,@Field("payment_id")String payment_id);
+
+    //reta/order/cancel
+    @FormUrlEncoded
+    @POST("reta/order/cancel")
+    Observable<NetWorkBean> cancelOrder(@Field("id")String id);
+}

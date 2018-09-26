@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent"
+    android:layout_height="match_parent"
+
+    android:orientation="vertical"
+    android:gravity="center"
+    >
+
+
+    <ImageView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@drawable/pay_sucess"
+        />
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+
+        android:textSize="28sp"
+        android:layout_marginTop="20dp"
+        android:textColor="#000"
+        android:text="支付成功"
+        />
+
+    <LinearLayout
+        android:visibility="gone"
+        android:id="@+id/ll_price_detail"
+        android:layout_width="wrap_content"
+        android:orientation="horizontal"
+        android:layout_height="wrap_content">
+<TextView
+    android:layout_marginTop="20dp"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:textSize="22sp"
+    android:text="收款"
+    />
+        <TextView
+            android:id="@+id/tv_pay_total"
+            android:layout_marginLeft="10dp"
+            android:layout_marginTop="20dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="22sp"
+            android:text="100.00元"
+            />
+        <TextView
+            android:layout_marginTop="20dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="22sp"
+            android:layout_marginLeft="30dp"
+            android:text="找零"
+            />
+        <TextView
+            android:id="@+id/tv_return_money"
+            android:layout_marginLeft="10dp"
+            android:layout_marginTop="20dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="22sp"
+            android:text="50.00元"
+            />
+    </LinearLayout>
+
+
+
+    <LinearLayout
+        android:layout_marginTop="40dp"
+        android:layout_width="match_parent"
+        android:orientation="horizontal"
+        android:gravity="center_horizontal"
+        android:layout_height="wrap_content">
+
+        <TextView
+            android:id="@+id/tv_repeat_print"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="重打小票"
+            android:paddingLeft="25dp"
+            android:paddingRight="25dp"
+            android:paddingTop="15dp"
+            android:paddingBottom="15dp"
+            android:background="@drawable/shape_bt_bg"
+            android:textColor="#609ee9"
+            />
+        <TextView
+            android:id="@+id/tv_continue"
+
+
+            android:paddingLeft="25dp"
+            android:paddingRight="25dp"
+            android:paddingTop="15dp"
+            android:paddingBottom="15dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="继续收款"
+            android:layout_marginLeft="30dp"
+
+            android:background="@drawable/shape_bt_bg"
+            android:textColor="#609ee9"
+
+            />
+    </LinearLayout>
+
+</LinearLayout>
