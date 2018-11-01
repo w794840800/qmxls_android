@@ -32,7 +32,12 @@ public class SlideFragment extends BaseFragment {
     Unbinder unbinder;
     @BindView(R.id.ll_settings)
     LinearLayout llSettings;
+
+
     Unbinder unbinder1;
+    @BindView(R.id.ll_order)
+    LinearLayout llOrder;
+    Unbinder unbinder2;
 
     @Override
     protected void initData() {
@@ -67,7 +72,7 @@ public class SlideFragment extends BaseFragment {
 
 
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
-    @OnClick({R.id.tv_slide_crashier, R.id.tv_slide_setting})
+    @OnClick({R.id.tv_slide_crashier, R.id.tv_slide_setting,R.id.tv_order})
     public void onViewClicked(View view) {
         switch (view.getId()) {
             case R.id.tv_slide_crashier:
@@ -80,9 +85,8 @@ public class SlideFragment extends BaseFragment {
 
 
                 Drawable drawable1 = getResources().getDrawable(R.drawable.setting_unselect);
-                drawable1.setBounds(0,0,drawable1.getIntrinsicWidth(),drawable1.getIntrinsicHeight());
-                tvSlideSetting.setCompoundDrawables(drawable1,null,null,null);
-
+                drawable1.setBounds(0, 0, drawable1.getIntrinsicWidth(), drawable1.getIntrinsicHeight());
+                tvSlideSetting.setCompoundDrawables(drawable1, null, null, null);
 
 
                 ((MainActivity) activity).showCrashierLayout();
@@ -95,17 +99,32 @@ public class SlideFragment extends BaseFragment {
 
 
                 Drawable drawable = getResources().getDrawable(R.drawable.setting_select);
-                drawable.setBounds(0,0,drawable.getIntrinsicWidth(),drawable.getIntrinsicHeight());
-                tvSlideSetting.setCompoundDrawables(drawable,null,null,null);
+                drawable.setBounds(0, 0, drawable.getIntrinsicWidth(), drawable.getIntrinsicHeight());
+                tvSlideSetting.setCompoundDrawables(drawable, null, null, null);
                 ((MainActivity) activity).showSettingLayout();
                 break;
+            case R.id.tv_order:
+
+                ((MainActivity) activity).showOrderLayout();
+                //((MainActivity) activity).showSettingLayout();
+
+                break;
+
+
         }
     }
-
-
 
     @Override
     public void onDestroyView() {
         super.onDestroyView();
+        unbinder2.unbind();
+    }
+
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        // TODO: inflate a fragment view
+        View rootView = super.onCreateView(inflater, container, savedInstanceState);
+        unbinder2 = ButterKnife.bind(this, rootView);
+        return rootView;
     }
 }

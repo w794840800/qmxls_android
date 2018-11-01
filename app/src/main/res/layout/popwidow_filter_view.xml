@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/TvWhite"
+
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+
+
+    <TextView
+        android:id="@+id/tv_create_time"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintLeft_toLeftOf="parent"
+        android:layout_marginTop="10dp"
+        android:layout_marginLeft="10dp"
+        android:text="下单时间"
+        android:textColor="@color/TvBlack"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="14sp"
+        />
+
+
+    <RadioGroup
+        android:id="@+id/rg_date"
+        android:layout_marginTop="15dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toBottomOf="@id/tv_create_time"
+
+        android:checkedButton="@id/rb_all"
+        android:gravity="center"
+        android:layout_marginRight="15dp"
+        android:orientation="horizontal"
+        >
+
+        <RadioButton
+            android:id="@+id/rb_all"
+           style="@style/date_rb_style"
+            android:text="全部"
+            />
+
+        <RadioButton
+            android:id="@+id/rb_today"
+            style="@style/date_rb_style"
+
+
+
+            android:text="今日"
+            />
+        <RadioButton
+            android:id="@+id/rb_yesterday"
+
+            style="@style/date_rb_style"
+            android:text="昨日"
+            />
+        <RadioButton
+                android:id="@+id/tv_seven_day"
+            style="@style/date_rb_style"
+            android:text="七日内"
+            />
+
+    </RadioGroup>
+
+
+<com.qimai.xinlingshou.view.DateSelectLinearLayout
+    android:id="@+id/ll_from_date"
+    android:layout_marginTop="10dp"
+    app:layout_constraintTop_toBottomOf="@id/rg_date"
+    android:layout_width="0dp"
+    android:layout_marginLeft="10dp"
+    app:layout_constraintHorizontal_chainStyle="spread"
+    app:layout_constraintRight_toLeftOf="@id/tv_zhi"
+    app:layout_constraintLeft_toLeftOf="parent"
+    android:layout_height="wrap_content"/>
+    <TextView
+        android:id="@+id/tv_zhi"
+
+        app:layout_constraintTop_toBottomOf="@id/rg_date"
+        android:text="至"
+        android:layout_width="wrap_content"
+        app:layout_constraintLeft_toRightOf="@id/ll_from_date"
+
+        app:layout_constraintRight_toLeftOf="@id/ll_to_date"
+        android:layout_height="wrap_content"
+        android:textSize="17sp"
+        android:layout_marginLeft="10dp"
+        android:layout_marginRight="10dp"
+        android:layout_marginTop="20dp"
+
+
+        />
+    <com.qimai.xinlingshou.view.DateSelectLinearLayout
+        android:id="@+id/ll_to_date"
+        app:layout_constraintRight_toRightOf="parent"
+        android:layout_marginRight="10dp"
+
+
+        app:layout_constraintLeft_toRightOf="@id/tv_zhi"
+        app:layout_constraintTop_toBottomOf="@id/rg_date"
+        android:layout_width="0dp"
+        android:layout_marginTop="10dp"
+        android:layout_height="wrap_content"/>
+
+   <!-- <Button
+
+        android:id="@+id/tv_data_all"
+        style="@style/date_bt_style"
+        app:layout_constraintTop_toBottomOf="@id/tv_create_time"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toLeftOf="@id/bt_time_today"
+        android:text="全部"
+
+        />
+
+
+    <Button
+        android:id="@+id/bt_time_today"
+        style="@style/date_bt_style"
+        app:layout_constraintTop_toBottomOf="@id/tv_create_time"
+      app:layout_constraintLeft_toRightOf="@id/tv_data_all"
+        android:text="今日"
+        app:layout_constraintRight_toLeftOf="@id/yesterday"
+
+        />
+    <Button
+        android:id="@+id/yesterday"
+        style="@style/date_bt_style"
+        app:layout_constraintTop_toBottomOf="@id/tv_create_time"
+        app:layout_constraintLeft_toRightOf="@id/bt_time_today"
+        app:layout_constraintRight_toLeftOf="@id/seven_days"
+        android:text="昨天"
+        />
+    <Button
+        android:id="@+id/seven_days"
+        style="@style/date_bt_style"
+
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tv_create_time"
+        app:layout_constraintLeft_toRightOf="@id/yesterday"
+
+        />
+-->
+</android.support.constraint.ConstraintLayout>

@@ -16,17 +16,20 @@
         android:orientation="vertical"
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="400dp"
+        android:layout_height="wrap_content"
         android:paddingTop="20dp"
     android:paddingLeft="20dp"
     android:paddingRight="20dp"
     android:paddingBottom="20dp"
-    android:layout_height="wrap_content">
+        android:background="@drawable/shape_round_white"
+    >
 
 
         <RelativeLayout
             android:layout_marginTop="10dp"
             android:layout_width="match_parent"
             android:orientation="horizontal"
+
             android:layout_height="wrap_content">
 
             <TextView
@@ -36,6 +39,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="应收:  "
+                android:layout_centerVertical="true"
                 android:id="@+id/tv_tips1_desc"
                 android:textSize="16sp"
                 android:textColor="@color/TvBlack"
@@ -48,14 +52,24 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="170.00元"
+                android:layout_centerVertical="true"
+
                 android:layout_marginTop="10dp"
                 android:layout_marginLeft="200dp"
-                android:textSize="16sp"
-                android:textColor="@color/TvBlack"
+                android:textSize="26sp"
+                android:textColor="@color/tvGreen"
                 />
+
+
 
         </RelativeLayout>
 
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="20dp"
+            android:background="#ffdddddd"
+            />
    <RelativeLayout
        android:layout_marginTop="15dp"
        android:layout_width="match_parent"
@@ -63,7 +77,7 @@
        android:orientation="horizontal"
        >
        <TextView
-          android:textColor="@color/TvDefault"
+          android:textColor="@color/TvBlack"
            android:visibility="visible"
            android:layout_width="wrap_content"
            android:layout_height="wrap_content"
@@ -73,8 +87,7 @@
 
 
        <TextView
-           android:textColor="@color/TvDefault"
-
+           android:textColor="@color/TvBlack"
            android:layout_alignParentRight="true"
            android:id="@+id/tv_blance_money"
            android:layout_width="wrap_content"
@@ -92,9 +105,7 @@
             android:orientation="horizontal"
             >
             <TextView
-                android:textColor="@color/TvDefault"
-
-
+                android:textColor="@color/TvBlack"
                 android:visibility="visible"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -104,7 +115,7 @@
 
 
             <TextView
-                android:textColor="@color/TvDefault"
+                android:textColor="@color/TvBlack"
 
                 android:layout_alignParentRight="true"
                 android:id="@+id/tv_leave_money"
@@ -122,7 +133,7 @@
             android:layout_width="match_parent"
             android:layout_height="1dp"
             android:layout_marginTop="20dp"
-            android:background="@color/TvDefault"
+            android:background="#ffdddddd"
             />
 
         <TextView
@@ -132,7 +143,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textSize="13sp"
-            android:textColor="@color/TvDefault"
+            android:textColor="@color/TvBlack"
             android:text="是否使用余额支付？"/>
    <LinearLayout
        android:layout_marginTop="20dp"
@@ -143,11 +154,20 @@
        android:orientation="horizontal"
        >
 
-       <Button
+       <com.qimai.xinlingshou.view.CustomButton
            android:layout_width="wrap_content"
            android:layout_height="wrap_content"
            android:text="确认"
            android:id="@+id/tv_ok"
+           android:background="@drawable/shape_bt_bg"
+           android:minHeight="0dp"
+           android:minWidth="0dp"
+           android:paddingLeft="50dp"
+           android:paddingTop="10dp"
+           android:paddingBottom="10dp"
+           android:paddingRight="50dp"
+           android:gravity="center"
+           android:textColor="@color/TvBlue"
            android:layout_marginRight="15dp"
            />
        <Button
@@ -156,6 +176,15 @@
            android:layout_width="wrap_content"
            android:layout_height="wrap_content"
            android:text="取消"
+           android:minHeight="0dp"
+           android:minWidth="0dp"
+           android:paddingLeft="50dp"
+           android:paddingTop="10dp"
+           android:paddingBottom="10dp"
+           android:paddingRight="50dp"
+           android:background="@drawable/shape_round_blue"
+
+           android:textColor="@color/TvWhite"
            />
 
 

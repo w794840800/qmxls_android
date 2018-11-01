@@ -35,7 +35,8 @@ public class AdapterDiffCallBack extends DiffUtil.Callback{
     @Override
     public boolean areItemsTheSame(int oldItemPosition, int newItemPosition) {
 
-        if (oldDatas.get(oldItemPosition).getGoodsId().equals(newDatas.get(newItemPosition).getGoodsId())){
+        if (oldDatas.get(oldItemPosition).getGoodsId()
+                .equals(newDatas.get(newItemPosition).getGoodsId())){
 
             return true;
         }

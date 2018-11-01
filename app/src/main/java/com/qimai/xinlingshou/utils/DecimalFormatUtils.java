@@ -1,5 +1,7 @@
 package com.qimai.xinlingshou.utils;
 
+import android.text.TextUtils;
+
 import java.text.DecimalFormat;
 
 /**
@@ -15,7 +17,7 @@ public class DecimalFormatUtils {
         
         
 
-        return "¥ "+decimalFormat.format(money);
+        return "￥ "+decimalFormat.format(money);
     }
     public static String doubleToMoney2(double money){
 
@@ -27,7 +29,7 @@ public class DecimalFormatUtils {
 
 
 
-        return "¥ "+decimalFormat.format(Double.parseDouble(money));
+        return "￥ "+decimalFormat.format(Double.parseDouble(money));
     }
     public static String doubleToMoneyWithOutSymbol(double money){
 
@@ -35,4 +37,22 @@ public class DecimalFormatUtils {
 
         return decimalFormat.format(money);
     }
+
+
+
+    public static String stringToMoneyWithOutSymbol(String money){
+
+        Double money1 = 0.00;
+        if (TextUtils.isEmpty(money)){
+
+            money1 = 0.00;
+
+        }else {
+        money1 =Double.parseDouble(money);
+        }
+
+        return decimalFormat.format(money1);
+    }
+
+
 }

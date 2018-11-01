@@ -104,7 +104,7 @@ public class GoodsRecyclerAdapter
                 .load(goodsBeanArrayList.get(position).getGoodsimg())
                 .asBitmap()
                 .placeholder(R.drawable.default_user)
-                .error(R.drawable.default_user)
+                .error(R.drawable.default_icon)
                 .listener(new RequestListener<String, Bitmap>() {
                     @Override
                     public boolean onException(Exception e, String model, Target<Bitmap> target, boolean isFirstResource) {
@@ -118,7 +118,7 @@ public class GoodsRecyclerAdapter
 
                         +" position= "+position);
                         if (goodsBeanArrayList.size()>position) {
-                            saveImage(resource, goodsBeanArrayList.get(position),position);
+                           // saveImage(resource, goodsBeanArrayList.get(position),position);
                         }
                         return false;
                     }

@@ -19,8 +19,10 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.gson.Gson;
 import com.qimai.xinlingshou.R;
 import com.qimai.xinlingshou.adapter.GoodsSelectAdapter;
+import com.qimai.xinlingshou.adapter.ViceGoodsSelectAdapter;
 import com.qimai.xinlingshou.bean.MoneyBean;
 import com.qimai.xinlingshou.bean.ReceiverInfo;
 import com.qimai.xinlingshou.bean.SecondScreenInfo;
@@ -29,7 +31,6 @@ import com.qimai.xinlingshou.bean.goodsBean;
 import com.qimai.xinlingshou.fragment.right.MessageEvent;
 import com.qimai.xinlingshou.utils.Data;
 import com.qimai.xinlingshou.utils.DecimalFormatUtils;
-import com.google.gson.Gson;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
@@ -62,12 +63,14 @@ import sunmi.ds.data.DSFiles;
 
 public class ViceActivity extends AppCompatActivity {
     private final String TAG = ViceActivity.class.getSimpleName();
+    @BindView(R.id.tv_balance)
+    TextView tvBalance;
 
 
     //在准备付钱的时候赋值
     private SecondScreenInfo paySecondScreenInfo;
     Disposable cutDownDispose;
-    GoodsSelectAdapter goodsSelectAdapter;
+    ViceGoodsSelectAdapter goodsSelectAdapter;
     ArrayList<goodsBean> selectedGoodsArrayList;
     SecondScreenInfo secondScreenInfo;
 
@@ -212,12 +215,10 @@ public class ViceActivity extends AppCompatActivity {
             } else if (secondScreenInfo.getType().equals(SecondScreenInfo.PAYSUCESS)) {
 
 
-
                 llLeftContainer.setVisibility(View.VISIBLE);
                 tvStatus.setText("收款成功 欢迎下次光临");
                 rvSelectGoods.setVisibility(View.GONE);
                 llPaySucess.setVisibility(View.VISIBLE);
-
 
 
                 hideView(rlVipYouhui);
@@ -227,24 +228,23 @@ public class ViceActivity extends AppCompatActivity {
                 hideView(rlActualPay);
 
 
-                if (paySecondScreenInfo!=null){
+                if (paySecondScreenInfo != null) {
 
-                   // tvTotalMoney.setText(DecimalFormatUtils.doubleToMoney());
+                    // tvTotalMoney.setText(DecimalFormatUtils.doubleToMoney());
 
-                    setTextAndVisibity(tvTotalMoney,Double.parseDouble(paySecondScreenInfo.getTotalActualPay()));
-                    if (secondScreenInfo.getPayMethod()==1){
+                    setTextAndVisibity(tvTotalMoney, Double.parseDouble(paySecondScreenInfo.getTotalActualPay()));
+                    if (secondScreenInfo.getPayMethod() == 1) {
 
-                        setTextAndVisibity(tvActualPay,Double.parseDouble(secondScreenInfo.getAcual_collect_money()));
+                        setTextAndVisibity(tvActualPay, Double.parseDouble(secondScreenInfo.getAcual_collect_money()));
 
-                        setTextAndVisibity(tvZhaoling,Double.parseDouble(secondScreenInfo.getZhaoling()));
+                        setTextAndVisibity(tvZhaoling, Double.parseDouble(secondScreenInfo.getZhaoling()));
 
-                    }else{
+                    } else {
 
-                        setTextAndVisibity(tvActualPay,Double.parseDouble(paySecondScreenInfo.getTotalActualPay()));
+                        setTextAndVisibity(tvActualPay, Double.parseDouble(paySecondScreenInfo.getTotalActualPay()));
 
 
                     }
-
 
 
                 }
@@ -274,24 +274,31 @@ public class ViceActivity extends AppCompatActivity {
                     tvVipName.setText(vipInfo.getName());
                     tvVipPhone.setText(vipInfo.getMobile());
 
+                    if (TextUtils.isEmpty(vipInfo.getAccount())){
+
+                        tvBalance.setVisibility(View.GONE);
+                    }else {
+                        tvBalance.setVisibility(View.VISIBLE);
+                        tvBalance.setText(vipInfo.getAccount() + "元");
+                    }
                 }
 
 
-            }else if (secondScreenInfo.getType().equals(SecondScreenInfo.REMOVE_VIP_INFO)) {
+            } else if (secondScreenInfo.getType().equals(SecondScreenInfo.REMOVE_VIP_INFO)) {
 
                 llVipInfo.setVisibility(View.GONE);
 
-            }else if (secondScreenInfo.getType().equals(SecondScreenInfo.BEGINPAY)) {
+            } else if (secondScreenInfo.getType().equals(SecondScreenInfo.BEGINPAY)) {
 
                 paySecondScreenInfo = secondScreenInfo;
                 tvStatus.setText("请出示支付宝/微信二维码\n\n请仔细核对收款金额");
 
-            }else if (secondScreenInfo.getType().equals(SecondScreenInfo.CANCELPAY)) {
+            } else if (secondScreenInfo.getType().equals(SecondScreenInfo.CANCELPAY)) {
 
                 tvStatus.setText("企小店欢迎光临");
                 paySecondScreenInfo = new SecondScreenInfo();
 
-            }else if (secondScreenInfo.getType().equals(SecondScreenInfo.PENDINGORDERSUCESS)){
+            } else if (secondScreenInfo.getType().equals(SecondScreenInfo.PENDINGORDERSUCESS)) {
 
                 llLeftContainer.setVisibility(View.GONE);
             }
@@ -399,7 +406,7 @@ public class ViceActivity extends AppCompatActivity {
     private void updateBill(MoneyBean moneyBean) {
 
 
-        Log.d(TAG, "updateBill: moneyBean= "+(moneyBean==null));
+        Log.d(TAG, "updateBill: moneyBean= " + (moneyBean == null));
         if (moneyBean == null) {
 
             rlVipYouhui.setVisibility(View.GONE);
@@ -459,19 +466,18 @@ public class ViceActivity extends AppCompatActivity {
         if (secondScreenInfo != null) {
 
 
-            setTextAndVisibity(tvTotalMoney,Double.parseDouble(secondScreenInfo.getTotalCostMoney()));
+            setTextAndVisibity(tvTotalMoney, Double.parseDouble(secondScreenInfo.getTotalCostMoney()));
             //tvTotalMoney.setText(DecimalFormatUtils.stringToMoney(secondScreenInfo.getTotalCostMoney()));
 //            tvTotalMoney.setText((DecimalFormatUtils.stringToMoney(secondScreenInfo.getTotalCostMoney())));
 
-         setTextAndVisibity(tvTotalPay,Double.parseDouble(secondScreenInfo.getTotalActualPay()));
+            setTextAndVisibity(tvTotalPay, Double.parseDouble(secondScreenInfo.getTotalActualPay()));
             //tvTotalPay.setText((DecimalFormatUtils.stringToMoney(secondScreenInfo.getTotalActualPay())));
-            selectedGoodsArrayList = (ArrayList<goodsBean>)
-                    secondScreenInfo.getGoodsBeanList();
+            selectedGoodsArrayList = new ArrayList<>(secondScreenInfo.getGoodsBeanList());
 
             Log.d(TAG, "updateUI: selectedGoodsArrayList=null " + (selectedGoodsArrayList == null));
             if (goodsSelectAdapter == null) {
 
-                goodsSelectAdapter = new GoodsSelectAdapter(this, selectedGoodsArrayList);
+                goodsSelectAdapter = new ViceGoodsSelectAdapter(this, selectedGoodsArrayList);
                 goodsSelectAdapter.updateData(selectedGoodsArrayList);
 
                 rvSelectGoods.setAdapter(goodsSelectAdapter);
@@ -520,14 +526,14 @@ public class ViceActivity extends AppCompatActivity {
 
         // dataReceiver = new DataReceiver();
         intentFilter = new IntentFilter();
-        intentFilter.addAction("test.data");
+        intentFilter.addAction("select_enable_disenable.data");
         // registerReceiver(dataReceiver,intentFilter);
     }
 
     private void initView() {
 
         selectedGoodsArrayList = new ArrayList<>();
-        goodsSelectAdapter = new GoodsSelectAdapter(this, selectedGoodsArrayList);
+        goodsSelectAdapter = new ViceGoodsSelectAdapter(this, selectedGoodsArrayList);
 
         rvSelectGoods.setLayoutManager(new LinearLayoutManager(this));
 

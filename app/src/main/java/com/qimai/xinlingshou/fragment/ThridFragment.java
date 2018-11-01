@@ -33,10 +33,10 @@ public class ThridFragment extends BaseFragment {
     }
 
 public void Sendpay(String auth_code,String order_no,String pay_type){
-    String url = App.API_URL+"reta/cashier/do-pay";
+    String url = App.API_URL+"ptfw/cashier/do-pay";
     Map<String,String> stringMap = new HashMap<>();
             stringMap.put("pay_type", pay_type);
-    stringMap.put("order_no","order_no");
+    stringMap.put("order_no",order_no);
     stringMap.put("auth_code", auth_code);
 
     Xutils.getInstance().get(url, stringMap, new Xutils.XCallBack() {

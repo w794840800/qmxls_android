@@ -8,8 +8,19 @@ public class VipInfo {
 
     private String mobile;
     private String name;
-
     private String account;
+
+    public String getAccount() {
+        return account;
+    }
+
+    public void setAccount(String account) {
+        this.account = account;
+    }
+
+
+
+
     public String getMobile() {
         return mobile;
     }
@@ -24,5 +35,14 @@ public class VipInfo {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    @Override
+    public String toString() {
+        return "VipInfo{" +
+                "mobile='" + mobile + '\'' +
+                ", name='" + name + '\'' +
+                ", account='" + account + '\'' +
+                '}';
     }
 }

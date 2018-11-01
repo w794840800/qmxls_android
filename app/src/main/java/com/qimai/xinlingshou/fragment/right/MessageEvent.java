@@ -3,6 +3,8 @@ package com.qimai.xinlingshou.fragment.right;
 import android.os.Bundle;
 
 import com.qimai.xinlingshou.bean.DiscountBean;
+import com.qimai.xinlingshou.bean.PrintInfoBean;
+import com.qimai.xinlingshou.bean.RechargePrint;
 import com.qimai.xinlingshou.bean.goodsBean;
 
 import java.util.ArrayList;
@@ -13,6 +15,10 @@ import java.util.Map;
  */
 
 public class MessageEvent {
+
+    //删除订单所以信息
+
+    public static final String CANCEL_ORDER_INFO = "allDelete";
 
 
     public static final String CALCULATEDISCOUNT = "calculateDiscount";
@@ -29,6 +35,42 @@ public class MessageEvent {
     public static final String MULTIPULTE_PAY = "multipulte_pay";
     public static final String SCAN_VIP_LOGIN = "scan_vip_pay";
 
+    //支付成功的展示页信息
+    public static final String PAY_SUCESS_SHOW = "pay_sucess_show";
+
+
+    public static final String BALANCEPAYFINISH = "balance_pay_finish";
+    public static final String RECHARGE = "recharge";
+
+    //取消收款
+    public static final String CANCELCOLLECTION = "cancelCollection";
+
+
+    //储值卡充值打印
+    public static final String RECHARGE_PRINT = "recharge_print";
+
+    //储值卡充值成功
+    public static final String RECHARGE_PAY_SUCESS = "recharge_pay_sucess";
+
+    //这一单结束
+    public static final String ORDER_FINISH = "order_finish";
+
+
+    //支付界面可以左右滑动
+    public static final String PAY_CAN_SCROLL = "pay_can_scroll";
+    //支付界面不能左右滑动
+    public static final String PAY_NOT_SCROLL = "pay_not_scroll";
+
+
+    //扫码枪连接
+    public static final String SCAN_CODE_CONNECT = "scan_code_connect";
+
+    //打印机连接
+    public static final String PRINT_CONNECT = "print_connect";
+
+
+    //控制左边收款与全部取消的可点
+    public static final String COLLECTION_CANCEL_ENABLE = "collect_cancel_enable";
 
     private ArrayList<goodsBean>goodsBeanArrayList;
     private goodsBean goodsBean;
@@ -68,7 +110,16 @@ public class MessageEvent {
     private String min_amount_use;
     private String ThridFragmentdata;
     private  String good_order;
+    private   PrintInfoBean printInfoBean;
+    private RechargePrint rechargePrint;
 
+    public PrintInfoBean getPrintInfoBean() {
+        return printInfoBean;
+    }
+
+    public void setPrintInfoBean(PrintInfoBean printInfoBean) {
+        this.printInfoBean = printInfoBean;
+    }
 
     public Map<String, com.qimai.xinlingshou.bean.goodsBean> getSelectedGoodsMap() {
         return selectedGoodsMap;
@@ -245,14 +296,24 @@ public class MessageEvent {
     }
 
     public void setSelectGoddsMap(Map<Integer, String> selectGoddsMap) {
+
         this.selectGoddsMap = selectGoddsMap;
     }
 
     public Bundle getBundle() {
+
         return bundle;
     }
 
     public void setBundle(Bundle bundle) {
         this.bundle = bundle;
+    }
+
+    public RechargePrint getRechargePrint() {
+        return rechargePrint;
+    }
+
+    public void setRechargePrint(RechargePrint rechargePrint) {
+        this.rechargePrint = rechargePrint;
     }
 }

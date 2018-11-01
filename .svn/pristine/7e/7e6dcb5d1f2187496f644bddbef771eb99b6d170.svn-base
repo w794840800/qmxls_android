@@ -1,0 +1,264 @@
+package com.qimai.xinlingshou.model;
+
+import android.text.TextUtils;
+import android.util.Log;
+
+import com.google.gson.JsonObject;
+import com.qimai.xinlingshou.Retrofit.ApiService;
+import com.qimai.xinlingshou.Retrofit.RetrofitUtils;
+import com.qimai.xinlingshou.bean.ordersBean;
+import com.qimai.xinlingshou.callback.NetWorkCallBack;
+import com.qimai.xinlingshou.callback.RequestObserver;
+
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import io.reactivex.disposables.Disposable;
+
+public class PayModel extends BaseModel{
+
+    private static final String TAG = "PayModel";
+    /**
+     * 余额支付
+     * */
+    public void blancePay(String user_id,String order_no,NetWorkCallBack netWorkCallBack){
+
+        changeThread(RetrofitUtils.getRetrofitUtils().getApiService()
+                        .balancePay(user_id, order_no)
+                , new RequestObserver() {
+                    @Override
+                    protected void onStart(Disposable d) {
+
+                        addDispose(d);
+                    }
+
+                    @Override
+                    protected void onSucess(Object data) {
+
+                        netWorkCallBack.onSucess(data.toString());
+
+                        Log.d(TAG, "onSucess: yuezhifu");
+                    }
+
+                    @Override
+                    protected void onFailed(String message) {
+
+                        netWorkCallBack.onFailed(message);
+                    }
+
+                });
+
+
+    }
+
+
+    /**
+     * 余额查询
+     * */
+    public void queryBlance(String userId,NetWorkCallBack netWorkCallBack){
+
+        changeThread(RetrofitUtils.getRetrofitUtils().getApiService()
+                .getBalance(userId), new RequestObserver() {
+            @Override
+            protected void onStart(Disposable d) {
+
+                addDispose(d);
+            }
+
+            @Override
+            protected void onSucess(Object data) {
+
+                String dataContent = data.toString();
+
+                if (!TextUtils.isEmpty(dataContent)){
+
+                    try {
+                        JSONObject jsonObject = new JSONObject(dataContent);
+
+
+
+
+                        netWorkCallBack.onSucess(jsonObject.getString("wealth"));
+
+
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+
+
+                }
+                Log.d(TAG, "onSucess: data= "+data.toString());
+
+
+            }
+
+            @Override
+            protected void onFailed(String message) {
+
+                netWorkCallBack.onFailed(message);
+            }
+
+
+        });
+
+    }
+
+
+    /**
+     * 上传订单信息
+     * */
+
+    public void uploadOrderInfo(ordersBean mOrderbean, NetWorkCallBack netWorkCallBack){
+
+        Log.d(TAG, "uploadOrderInfo: mOrderbean= "+mOrderbean.toString());
+        Map<String,String> map = new HashMap<>();
+
+
+        putMapValues(map,"use_wallet",mOrderbean.getUse_wallet()+"");
+        putMapValues(map,"user_id",mOrderbean.getUserid());
+        putMapValues(map,"total_amount",mOrderbean.getTotal_amount());
+        putMapValues(map,"amount",mOrderbean.getAmount());
+        //Log.d(TAG, "uploadDateToServe: amount= "+mOrderbean.getAmount());
+        putMapValues(map,"user_remarks","abcdef");
+        putMapValues(map,"seller_remarks",mOrderbean.getSeller_remarks());
+        putMapValues(map,"trade_no",mOrderbean.getService_orderId());
+        putMapValues(map,"payment_id",mOrderbean.getPayment_id());
+        putMapValues(map,"minus_amount",mOrderbean.getMinus_amount());
+        putMapValues(map,"card_minus",mOrderbean.getCard_minus());
+        putMapValues(map,"coupon_minus",mOrderbean.getCoupon_minus());
+        putMapValues(map,"card_id",mOrderbean.getCard_id());
+        putMapValues(map,"coupon_id",mOrderbean.getCoupon_id());
+        putMapValues(map,"items",mOrderbean.getOrderInfo());
+        putMapValues(map,"status",mOrderbean.getStatus()+"");
+        putMapValues(map,"wallet_amount",mOrderbean.getWallet_amount());
+        putMapValues(map,"order_no",mOrderbean.getOrder());
+        putMapValues(map,"create_time",mOrderbean.getCreate_time());
+        putMapValues(map,"pay_time",mOrderbean.getPay_time());
+        putMapValues(map,"finish_time",mOrderbean.getFinish_time());
+
+
+        changeThread(RetrofitUtils.getRetrofitUtils().getApiService()
+                        .uploadOrder((HashMap<String, String>) map)
+                , new RequestObserver() {
+                    @Override
+                    protected void onStart(Disposable d) {
+
+                        Log.d(TAG, "onStart: ");
+                        addDispose(d);
+                    }
+
+                    @Override
+                    protected void onSucess(Object data) {
+
+                        Log.d(TAG, "onSucess: data= "+data.toString());
+
+                        netWorkCallBack.onSucess(data);
+                    }
+
+                    @Override
+                    protected void onFailed(String message) {
+
+                        Log.d(TAG, "onFailed: messag = "+message);
+
+                        netWorkCallBack.onFailed(message);
+                    }
+
+                });
+
+
+
+
+
+    }
+
+
+    /**
+     * 同步余额支付订单信息
+     * **/
+    public void asyncBalanceOrder(String order_no,String trade_no,String payment_id,
+
+                                  String pay_time,String finish_time,
+                                  NetWorkCallBack netWorkCallBack){
+
+        Log.d(TAG, "asyncBalanceOrder: order_no= "+order_no+" trade_no= "+trade_no
+
+        +" payment_id= "+payment_id);
+        changeThread(RetrofitUtils.getRetrofitUtils().getApiService().asyncBalanceOrderStatus(order_no, trade_no
+                , payment_id,pay_time,finish_time), new RequestObserver() {
+            @Override
+            protected void onStart(Disposable d) {
+
+            }
+
+            @Override
+            protected void onSucess(Object data) {
+
+                netWorkCallBack.onSucess(data);
+            }
+
+            @Override
+            protected void onFailed(String message) {
+
+                netWorkCallBack.onFailed(message);
+            }
+
+
+        });
+
+
+    }
+
+
+    public void cancelOrder(String id,NetWorkCallBack netWorkCallBack){
+
+        changeThread(RetrofitUtils.getRetrofitUtils().getApiService()
+                .cancelOrder(id), new RequestObserver() {
+            @Override
+            protected void onStart(Disposable d) {
+
+                addDispose(d);
+            }
+
+            @Override
+            protected void onSucess(Object data) {
+
+                netWorkCallBack.onSucess(data);
+
+            }
+
+            @Override
+            protected void onFailed(String message) {
+
+                netWorkCallBack.onFailed(message);
+            }
+
+        });
+
+
+
+    }
+    /**
+     * 添加参数到map中，为空的值不添加
+     * @param params 参数名
+     * @param values 参数值
+     *
+     * */
+
+    private void putMapValues(Map<String,String> map, String params, String values) {
+
+        if (TextUtils.isEmpty(values)){
+            return;
+        }else{
+
+            map.put(params,values);
+        }
+    }
+
+
+
+
+
+}

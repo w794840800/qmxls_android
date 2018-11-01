@@ -12,10 +12,18 @@ import android.widget.TextView;
 
 import com.qimai.xinlingshou.R;
 import com.qimai.xinlingshou.bean.BalancePayBean;
+import com.qimai.xinlingshou.bean.ordersBean;
 import com.qimai.xinlingshou.callback.BlancePayCallBack;
 import com.qimai.xinlingshou.callback.NetWorkCallBack;
+import com.qimai.xinlingshou.fragment.right.MessageEvent;
 import com.qimai.xinlingshou.model.PayModel;
+import com.qimai.xinlingshou.utils.DecimalFormatUtils;
+import com.qimai.xinlingshou.utils.TimeUtils;
 import com.qimai.xinlingshou.utils.ToastUtils;
+
+import org.greenrobot.eventbus.EventBus;
+import org.greenrobot.eventbus.Subscribe;
+import org.greenrobot.eventbus.ThreadMode;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -40,6 +48,7 @@ public class PayOrderBalanceDialogFragment extends BaseDialogFragment {
     String totalMoney;
     String balance_leave;
     BalancePayBean balancePayBean;
+    View view;
     public void setBlancePayCallBack(BlancePayCallBack blancePayCallBack) {
 
 
@@ -79,7 +88,7 @@ public class PayOrderBalanceDialogFragment extends BaseDialogFragment {
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
 
-        View view = inflater.inflate(R.layout.dialog_pay, container, false);
+         view = inflater.inflate(R.layout.dialog_pay, container, false);
 
         ButterKnife.bind(this, view);
 
@@ -101,8 +110,9 @@ public class PayOrderBalanceDialogFragment extends BaseDialogFragment {
 
         totalMoney = balancePayBean.getOrderMoney();
 
-        tvOrderMoney.setText(totalMoney+"元");
+        tvOrderMoney.setText(DecimalFormatUtils.stringToMoneyWithOutSymbol(totalMoney));
     }
+
 
     @Override
     public void onResume() {
@@ -121,6 +131,7 @@ public class PayOrderBalanceDialogFragment extends BaseDialogFragment {
 
         getDialog().setCanceledOnTouchOutside(false);
 
+        getDialog().setCancelable(false);
         /*WindowManager.LayoutParams layoutParams = getDialog().getWindow().getAttributes();
 
         layoutParams.width = 500;
@@ -131,21 +142,42 @@ public class PayOrderBalanceDialogFragment extends BaseDialogFragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
+
+
     }
+
 
     @OnClick({R.id.tv_ok, R.id.tv_cancel})
     public void onClick(View view) {
         switch (view.getId()) {
             case R.id.tv_ok:
-
-
+                Log.d(TAG, "onClick: call "+Log
+                        .getStackTraceString(new Throwable()));
+                Log.d(TAG, "onClick: tv_ok");
                 if (payModel==null){
 
                     payModel = new PayModel();
+
+                }
+                ordersBean mOrderbean = balancePayBean.getOrdersBean();
+                mOrderbean.setUse_wallet(1);
+                mOrderbean.setAmount("0.00");
+                mOrderbean.setStatus(1);
+
+                mOrderbean.setWallet_amount(balancePayBean.getWallet_amount());
+                mOrderbean.setTotalBalance(balancePayBean.getBalanceTotal());
+
+                //balancePayBean.getOrdersBean().setAmount("0.00");
+
+                if (progressDialog==null){
+
+                    createProgressDialog();
                 }
 
+               // progressDialog.show();
 
-                balancePayBean.getOrdersBean().setAmount("0.00");
+                DialogUtils.createDialog(getActivity());
+
 
                 payModel.uploadOrderInfo(balancePayBean.getOrdersBean(),new NetWorkCallBack() {
                     @Override
@@ -157,14 +189,32 @@ public class PayOrderBalanceDialogFragment extends BaseDialogFragment {
                             @Override
                             public void onSucess(Object data) {
 
+                                // progressDialog.dismiss();
+
+                                DialogUtils.cancelDialog();
 
                                 balancePayBean.setOrderLeaveMoney("0.00");
                                 //余额剩余
                                 balance_leave = calculateLeavemoney(balancePayBean);
+
+                               // NotificationClientInfoUpdate(userId);
+
                                 if (blancePayCallBack!=null){
 
                                     Log.d(TAG, "onSucess: balance_leave= "+balance_leave);
+
+                                    balancePayBean.getOrdersBean().setLeaveBalance(balance_leave);
+                                    balancePayBean.getOrdersBean().setIspay("1");
+
+                                    //支付成功时候记录支付时间，与完成时间
+
+                                    balancePayBean.getOrdersBean().setPay_time(TimeUtils
+                                    .getCurrentPhpTimeStamp());
+                                    balancePayBean.getOrdersBean().setFinish_time(TimeUtils
+                                            .getCurrentPhpTimeStamp());
                                     balancePayBean.setBalanceLeave(balance_leave);
+
+                                    balancePayBean.getOrdersBean().setLeaveBalance(balance_leave);
                                     balancePayBean.setType(BaseDialogFragment.BALANCE_PAY);
 
                                     Log.d(TAG, "onSucess222: balancePayBean= "+balancePayBean.toString());
@@ -179,10 +229,15 @@ public class PayOrderBalanceDialogFragment extends BaseDialogFragment {
                             @Override
                             public void onFailed(String msg) {
 
+                                //progressDialog.dismiss();
+
+                                DialogUtils.cancelDialog();
+
                                 //ToastUtils.showShortToast(msg);
                                 if (blancePayCallBack!=null){
 
                                     blancePayCallBack.onPayFailed(msg);
+
                                 }
 
 
@@ -196,6 +251,7 @@ public class PayOrderBalanceDialogFragment extends BaseDialogFragment {
                     @Override
                     public void onFailed(String msg) {
 
+                        progressDialog.dismiss();
                         ToastUtils.showLongToast(msg);
                     }
                 });

@@ -1,5 +1,8 @@
 package com.qimai.xinlingshou.bean;
 
+import android.os.Parcel;
+import android.os.Parcelable;
+
 import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
 
@@ -12,7 +15,11 @@ import java.io.Serializable;
  * Created by wanglei on 18-5-19.
  */
 
-public class ordersBean extends LitePalSupport implements Serializable{
+public class ordersBean extends LitePalSupport implements Parcelable {
+
+    //店铺id
+    @Expose
+    private String store_id;
     private int id;
     /**
      * 是否同步
@@ -73,12 +80,12 @@ public class ordersBean extends LitePalSupport implements Serializable{
      * 订单总金额
      */
     @Expose
-    private String   total_amount;
+    private String total_amount;
     /**
      * 第三方支付金额
      */
     @Expose
-    private String  amount = "0.00";
+    private String amount = "0.00";
     /**
      *会员卡id
      */
@@ -125,6 +132,74 @@ public class ordersBean extends LitePalSupport implements Serializable{
     @Expose
     private String wallet_amount;
 
+    //创建时间
+    @Expose
+    private String create_time;
+    //支付时间
+    @Expose
+    private String pay_time;
+    //订单完成时间
+    @Expose
+    private String finish_time;
+
+    //账户内总的余额
+    private String totalBalance;
+
+
+    //账户内剩余的余额
+    private String leaveBalance;
+
+    //实收金额
+    private String actual_input_money;
+
+    //找零金额
+    private String charge_money;
+
+    //轮训是否结束 0 未结束 1结束
+    @Expose
+    private String query_order;
+    //第三方支付方式  010 微信 020支付宝
+    private String payType;
+
+    public String getCreate_time() {
+        return create_time;
+    }
+
+    public void setCreate_time(String create_time) {
+        this.create_time = create_time;
+    }
+
+    public String getPay_time() {
+        return pay_time;
+    }
+
+    public void setPay_time(String pay_time) {
+        this.pay_time = pay_time;
+    }
+
+    public String getFinish_time() {
+        return finish_time;
+    }
+
+    public void setFinish_time(String finish_time) {
+        this.finish_time = finish_time;
+    }
+
+    public String getActual_input_money() {
+        return actual_input_money;
+    }
+
+    public void setActual_input_money(String actual_input_money) {
+        this.actual_input_money = actual_input_money;
+    }
+
+    public String getCharge_money() {
+        return charge_money;
+    }
+
+    public void setCharge_money(String charge_money) {
+        this.charge_money = charge_money;
+    }
 
     public int getStatus() {
         return status;
@@ -419,7 +494,8 @@ public class ordersBean extends LitePalSupport implements Serializable{
     @Override
     public String toString() {
         return "ordersBean{" +
-                "id=" + id +
+                "store_id='" + store_id + '\'' +
+                ", id=" + id +
                 ", isauto='" + isauto + '\'' +
                 ", goodsPic=" + goodsPic +
                 ", goodsName='" + goodsName + '\'' +
@@ -449,6 +525,156 @@ public class ordersBean extends LitePalSupport implements Serializable{
                 ", status=" + status +
                 ", use_wallet=" + use_wallet +
                 ", wallet_amount='" + wallet_amount + '\'' +
+                ", create_time='" + create_time + '\'' +
+                ", pay_time='" + pay_time + '\'' +
+                ", finish_time='" + finish_time + '\'' +
+                ", totalBalance='" + totalBalance + '\'' +
+                ", leaveBalance='" + leaveBalance + '\'' +
+                ", actual_input_money='" + actual_input_money + '\'' +
+                ", charge_money='" + charge_money + '\'' +
+                ", query_order='" + query_order + '\'' +
+                ", payType='" + payType + '\'' +
                 '}';
+    }
+
+
+    public String getTotalBalance() {
+        return totalBalance;
+    }
+
+    public void setTotalBalance(String totalBalance) {
+        this.totalBalance = totalBalance;
+    }
+
+    public String getLeaveBalance() {
+        return leaveBalance;
+    }
+
+    public void setLeaveBalance(String leaveBalance) {
+        this.leaveBalance = leaveBalance;
+    }
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(Parcel dest, int flags) {
+        dest.writeInt(this.id);
+        dest.writeString(this.isauto);
+        dest.writeInt(this.goodsPic);
+        dest.writeString(this.goodsName);
+        dest.writeDouble(this.price);
+        dest.writeString(this.goodsId);
+        dest.writeString(this.unit);
+        dest.writeInt(this.number);
+        dest.writeString(this.changeType);
+        dest.writeString(this.goodsimg);
+        dest.writeString(this.userid);
+        dest.writeString(this.coupon_minus);
+        dest.writeString(this.card_minus);
+        dest.writeString(this.minus_amount);
+        dest.writeString(this.order);
+        dest.writeString(this.ispay);
+        dest.writeString(this.payment_id);
+        dest.writeString(this.huiyuan);
+        dest.writeString(this.total_amount);
+        dest.writeString(this.amount);
+        dest.writeString(this.card_id);
+        dest.writeString(this.coupon_id);
+        dest.writeString(this.user_remarks);
+        dest.writeString(this.seller_remarks);
+        dest.writeString(this.orderInfo);
+        dest.writeString(this.trade_no);
+        dest.writeString(this.server_order_no);
+        dest.writeInt(this.status);
+        dest.writeInt(this.use_wallet);
+        dest.writeString(this.wallet_amount);
+        dest.writeString(this.create_time);
+        dest.writeString(this.pay_time);
+        dest.writeString(this.finish_time);
+        dest.writeString(this.totalBalance);
+        dest.writeString(this.leaveBalance);
+        dest.writeString(this.actual_input_money);
+        dest.writeString(this.charge_money);
+    }
+
+    protected ordersBean(Parcel in) {
+        this.id = in.readInt();
+        this.isauto = in.readString();
+        this.goodsPic = in.readInt();
+        this.goodsName = in.readString();
+        this.price = in.readDouble();
+        this.goodsId = in.readString();
+        this.unit = in.readString();
+        this.number = in.readInt();
+        this.changeType = in.readString();
+        this.goodsimg = in.readString();
+        this.userid = in.readString();
+        this.coupon_minus = in.readString();
+        this.card_minus = in.readString();
+        this.minus_amount = in.readString();
+        this.order = in.readString();
+        this.ispay = in.readString();
+        this.payment_id = in.readString();
+        this.huiyuan = in.readString();
+        this.total_amount = in.readString();
+        this.amount = in.readString();
+        this.card_id = in.readString();
+        this.coupon_id = in.readString();
+        this.user_remarks = in.readString();
+        this.seller_remarks = in.readString();
+        this.orderInfo = in.readString();
+        this.trade_no = in.readString();
+        this.server_order_no = in.readString();
+        this.status = in.readInt();
+        this.use_wallet = in.readInt();
+        this.wallet_amount = in.readString();
+        this.create_time = in.readString();
+        this.pay_time = in.readString();
+        this.finish_time = in.readString();
+        this.totalBalance = in.readString();
+        this.leaveBalance = in.readString();
+        this.actual_input_money = in.readString();
+        this.charge_money = in.readString();
+    }
+
+    public static final Creator<ordersBean> CREATOR = new Creator<ordersBean>() {
+        @Override
+        public ordersBean createFromParcel(Parcel source) {
+            return new ordersBean(source);
+        }
+
+        @Override
+        public ordersBean[] newArray(int size) {
+            return new ordersBean[size];
+        }
+    };
+
+    public String getStore_id() {
+        return store_id;
+    }
+
+    public void setStore_id(String store_id) {
+        this.store_id = store_id;
+    }
+
+
+
+    public String getQuery_order() {
+        return query_order;
+    }
+
+    public void setQuery_order(String query_order) {
+        this.query_order = query_order;
+    }
+
+    public String getPayType() {
+        return payType;
+    }
+
+    public void setPayType(String payType) {
+        this.payType = payType;
     }
 }

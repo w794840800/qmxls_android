@@ -11,6 +11,8 @@ import com.qimai.xinlingshou.App;
 import com.qimai.xinlingshou.BaseFragment;
 import com.qimai.xinlingshou.R;
 import com.qimai.xinlingshou.activity.MainActivity;
+import com.qimai.xinlingshou.callback.NetWorkCallBack;
+import com.qimai.xinlingshou.model.PayModel;
 import com.qimai.xinlingshou.utils.AidlUtil;
 import com.qimai.xinlingshou.utils.DecimalFormatUtils;
 import com.qimai.xinlingshou.utils.Hint;
@@ -87,9 +89,13 @@ public class CrashFragment extends BaseFragment {
 
         goodsPrice = price;
         clearAllText();
+
+        if (tvActualMoney!=null){
         tvActualMoney.setText(goodsPrice+"");
-        tvClientPay.setText("0.00");
-        tvCharge.setText("0.00");
+            tvClientPay.setText("0.00");
+            tvCharge.setText("0.00");
+        }
+
         if (tvActualMoney != null) {
 
             tvActualMoney.setText(DecimalFormatUtils.doubleToMoneyWithOutSymbol(goodsPrice));
@@ -119,7 +125,7 @@ public class CrashFragment extends BaseFragment {
     @Override
     public void setUserVisibleHint(boolean isVisibleToUser) {
         super.setUserVisibleHint(isVisibleToUser);
-        EventBus.getDefault().post(new MessageEvent("test"));
+        EventBus.getDefault().post(new MessageEvent("select_enable_disenable"));
 //        tvShouInfo.performClick();
     }
 
@@ -233,6 +239,7 @@ public class CrashFragment extends BaseFragment {
             case R.id.tv_key_clear:
 
                 inputContent = new StringBuilder();
+
                 break;
             case R.id.tv_key_del:
 
@@ -250,15 +257,6 @@ public class CrashFragment extends BaseFragment {
                    messageEvent.setShifu_pay(tvClientPay.getText().toString());
                    messageEvent.setZhaoling_pay(tvCharge.getText().toString());
                    EventBus.getDefault().post(messageEvent);
-                   //((MainActivity)activity).showRightCrashierLayout();
-                   BluetoothAdapter blueadapter= BluetoothAdapter.getDefaultAdapter();
-
-                   if(!AidlUtil.getInstance().isConnect()){
-                       if (!blueadapter.isEnabled()) {
-                           Hint.Short(getActivity(),"实收金额大于应收金额！");
-                           return;
-                       }
-                   }
                    MessageEvent  messageEvent1 = new MessageEvent("allDelete");
                    EventBus.getDefault().post(messageEvent1);
                    //((MainActivity)activity).showRightCrashierLayout();
@@ -271,9 +269,29 @@ public class CrashFragment extends BaseFragment {
                 break;
             case R.id.tv_cancel:
 
-               // ((MainActivity) activity).showRightCrashierLayout();
+                ((MainActivity) activity).showRightCrashierLayout();
                 //设置左侧整单取消与收款可点击
+
+               /* new PayModel()
+                        .cancelOrder("PO8ZIB1H0TT1418213", new NetWorkCallBack() {
+                            @Override
+                            public void onSucess(Object data) {
+                                ToastUtils.showShortToast("退款成功");
+                            }
+
+                            @Override
+                            public void onFailed(String msg) {
+
+                                ToastUtils.showShortToast("退款失败= "+msg);
+
+                            }
+                        });*/
+                Log.d(TAG, "post cancelCollection");
+
                 EventBus.getDefault().post(new MessageEvent("cancelCollection"));
+
+                EventBus.getDefault().post(new MessageEvent("retuenMoney"));
+
 
                 break;
         }

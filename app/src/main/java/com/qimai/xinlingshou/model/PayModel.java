@@ -3,24 +3,38 @@ package com.qimai.xinlingshou.model;
 import android.text.TextUtils;
 import android.util.Log;
 
-import com.google.gson.JsonObject;
-import com.qimai.xinlingshou.Retrofit.ApiService;
+import com.qimai.xinlingshou.App;
 import com.qimai.xinlingshou.Retrofit.RetrofitUtils;
+import com.qimai.xinlingshou.bean.RechargeBean;
+import com.qimai.xinlingshou.bean.ValueCardBean;
+import com.qimai.xinlingshou.bean.orderQueryBean;
 import com.qimai.xinlingshou.bean.ordersBean;
 import com.qimai.xinlingshou.callback.NetWorkCallBack;
+import com.qimai.xinlingshou.callback.NetWorkCallBack2;
 import com.qimai.xinlingshou.callback.RequestObserver;
+import com.qimai.xinlingshou.utils.Xutils;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
 import io.reactivex.disposables.Disposable;
+import retrofit2.http.Field;
 
 public class PayModel extends BaseModel{
 
     private static final String TAG = "PayModel";
+    private static PayModel payModel = new PayModel();
+
+    public static PayModel getInstance(){
+
+        return payModel;
+
+    }
     /**
      * 余额支付
      * */
@@ -135,6 +149,9 @@ public class PayModel extends BaseModel{
         putMapValues(map,"status",mOrderbean.getStatus()+"");
         putMapValues(map,"wallet_amount",mOrderbean.getWallet_amount());
         putMapValues(map,"order_no",mOrderbean.getOrder());
+        putMapValues(map,"create_time",mOrderbean.getCreate_time());
+        putMapValues(map,"pay_time",mOrderbean.getPay_time());
+        putMapValues(map,"finish_time",mOrderbean.getFinish_time());
 
 
         changeThread(RetrofitUtils.getRetrofitUtils().getApiService()
@@ -175,10 +192,16 @@ public class PayModel extends BaseModel{
     /**
      * 同步余额支付订单信息
      * **/
-    public void asyncBalanceOrder(String order_no,String trade_no,String payment_id,NetWorkCallBack netWorkCallBack){
+    public void asyncBalanceOrder(String order_no,String trade_no,String payment_id,
 
+                                  String pay_time,String finish_time,
+                                  NetWorkCallBack netWorkCallBack){
+
+        Log.d(TAG, "asyncBalanceOrder: order_no= "+order_no+" trade_no= "+trade_no
+
+        +" payment_id= "+payment_id);
         changeThread(RetrofitUtils.getRetrofitUtils().getApiService().asyncBalanceOrderStatus(order_no, trade_no
-                , payment_id), new RequestObserver() {
+                , payment_id,pay_time,finish_time), new RequestObserver() {
             @Override
             protected void onStart(Disposable d) {
 
@@ -250,6 +273,230 @@ public class PayModel extends BaseModel{
 
 
 
+    /**
+     * 查询订单支付状态
+     * */
+    public void queryOrderPayStatus(String out_trade_no,String pay_type,NetWorkCallBack netWorkCallBack){
 
+        changeThread(RetrofitUtils.getRetrofitUtils().getApiService()
+                .queryOrderPayStatus(out_trade_no, pay_type), new RequestObserver<orderQueryBean>() {
+            @Override
+            protected void onStart(Disposable d) {
+
+            }
+
+            @Override
+            protected void onSucess(orderQueryBean data) {
+
+                netWorkCallBack.onSucess(data);
+            }
+
+            @Override
+            protected void onFailed(String message) {
+
+                netWorkCallBack.onFailed(message);
+
+            }
+
+        });
+
+
+    }
+
+
+    //获取储值卡列表
+
+    public void getValueCard(int page,int page_size,String keyword,int is_cashier,NetWorkCallBack2 netWorkCallBack) {
+
+
+        ArrayList<ValueCardBean>valueCardBeanArrayList = new ArrayList<>();
+        HashMap<String, String> params = new HashMap<>();
+
+        params.put("page", page + "");
+        params.put("page_size", page_size + "");
+        params.put("keyword", "");
+        params.put("is_cashier", is_cashier + "");
+
+        Xutils.getInstance().get(App.API_URL + "ptmarketing/recharge-card/list", params
+                , new Xutils.XCallBackWithError() {
+                    @Override
+                    public void onError(Throwable throwable) {
+
+                        netWorkCallBack.onFailed(throwable.getMessage());
+                        Log.d(TAG, "onError: error= " + throwable.getMessage());
+                    }
+
+                    @Override
+                    public void onResponse(String result) {
+
+                        Log.d(TAG, "onResponse: result= " + result);
+
+
+                        try {
+                            JSONObject jsonObject = new JSONObject(result);
+
+                            boolean status = jsonObject.getBoolean("status");
+
+
+                            if (status){
+
+
+                                    JSONObject jsonObjectData = jsonObject.getJSONObject("data");
+
+
+                                    JSONObject jsonObjectList = jsonObjectData.getJSONObject("list");
+
+                                JSONArray jsonArrayData = jsonObjectList.getJSONArray("data");
+
+                                ValueCardBean valueCardBean;
+
+                                for (int i = 0; i <jsonArrayData.length(); i++) {
+
+                                    valueCardBean = new ValueCardBean();
+                                    JSONObject jsonItem = jsonArrayData.getJSONObject(i);
+
+                                    valueCardBean.setSell_price(jsonItem.getString("sell_price"));
+                                    valueCardBean.setStore_id(jsonItem.getString("store_id"));
+                                    valueCardBean.setRecharge_name(jsonItem.getString("name"));
+
+                                    String id = jsonItem.getString("id");
+
+                                    valueCardBean.setRecharge_id(id);
+                                    //gifts数组
+
+                                    JSONArray jsonArrayGifts = jsonItem.getJSONArray("gifts");
+
+
+                                    for (int j = 0; j < jsonArrayGifts.length(); j++) {
+
+                                        JSONObject jsonObjectGiftsItem = jsonArrayGifts.getJSONObject(j);
+
+                                        if (jsonObjectGiftsItem.toString().contains("Balance")){
+
+                                             /*String id = jsonObjectGiftsItem.getString("recharge_card_id");
+
+                                             valueCardBean.setRecharge_id(id);*/
+                                            JSONObject jsonObjectExt = jsonObjectGiftsItem.getJSONObject("ext");
+
+
+                                            String entity = jsonObjectExt.optString("entity");
+
+                                            if (TextUtils.isEmpty(entity)){
+
+                                                entity = "0";
+
+                                            }                                            valueCardBean.setEntity(entity);
+
+
+
+
+
+                                        }
+
+
+
+                                        break;
+
+                                    }
+
+
+                                    Log.d(TAG, "onResponse: valueCardBean= "+valueCardBean.toString());
+                                    valueCardBeanArrayList.add(valueCardBean);
+
+
+
+
+
+                                }
+
+
+                                Log.d(TAG, "onResponse: valueSize size= "+valueCardBeanArrayList.size()+" content= ");
+
+
+
+
+
+
+                            }
+
+
+                            netWorkCallBack.onSucess(valueCardBeanArrayList);
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+
+                            Log.d(TAG, "onResponse: e= "+e.getMessage());
+                        }
+
+
+
+                    }
+                });
+
+
+    }
+
+    public void create_recharge_order(String entity,String user_id,String store_id,NetWorkCallBack2 netWorkCallBack2){
+
+        Log.d(TAG, "create_recharge_order: entity= "+entity+" user_id= "+user_id);
+
+        changeThread(RetrofitUtils.getRetrofitUtils().getApiService()
+                .create_recharge_order(entity, user_id,store_id), new RequestObserver<RechargeBean>() {
+            @Override
+            protected void onStart(Disposable d) {
+
+                netWorkCallBack2.onStart();
+            }
+
+            @Override
+            protected void onSucess(RechargeBean data) {
+
+                netWorkCallBack2.onSucess(data);
+
+            }
+
+            @Override
+            protected void onFailed(String message) {
+
+                netWorkCallBack2.onFailed(message);
+            }
+
+
+        });
+
+    }
+
+    public void uploadRechargeOrder(String order_no,
+                                    String user_id
+            ,String payment_id,String trade_no,NetWorkCallBack2 netWorkCallBack2 ){
+
+
+        changeThread(RetrofitUtils.getRetrofitUtils().getApiService()
+                .upload_recharge_order(order_no, user_id, payment_id, trade_no), new RequestObserver() {
+            @Override
+            protected void onStart(Disposable d) {
+
+            }
+
+            @Override
+            protected void onSucess(Object data) {
+
+                netWorkCallBack2.onSucess(data);
+
+            }
+
+            @Override
+            protected void onFailed(String message) {
+
+
+                netWorkCallBack2.onFailed(message);
+            }
+
+
+        });
+
+    }
 
 }
+

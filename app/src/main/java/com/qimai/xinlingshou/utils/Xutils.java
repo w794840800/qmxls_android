@@ -64,10 +64,11 @@ public class Xutils {
         params.addHeader("Accept","*/*; v=1.0");
         params.addHeader("Referer", App.API_URL);
         params.addHeader("Qm-From","android");
-        params.addHeader("Qm-From-Type","reta");
+        params.addHeader("Qm-From-Type","ptfwil");
+
+        Log.d(TAG, "get: App.store.getString(\"cookie_auth\")= "+App.store.getString("cookie_auth"));
         params.addHeader("Qm-Account-Token",App.store.getString("cookie_auth"));
         params.addHeader("User-Agent","wechatdevtools appservice port/62739");
-
         x.http().get(params, new Callback.CommonCallback<String>() {
 
             @Override
@@ -112,7 +113,7 @@ public class Xutils {
         params.addHeader("Accept","*/*; v=1.0");
         params.addHeader("Referer", App.API_URL);
         params.addHeader("Qm-From","android");
-        params.addHeader("Qm-From-Type","reta");
+        params.addHeader("Qm-From-Type","ptfwil");
         params.addHeader("Qm-Account-Token",App.store.getString("cookie_auth"));
         params.addHeader("User-Agent","wechatdevtools appservice port/62739");
         Log.e("AAAAAAA",params.toString());
@@ -176,7 +177,7 @@ public class Xutils {
         params.addHeader("Accept","*/*; v=1.0");
         params.addHeader("Referer", App.API_URL);
         params.addHeader("Qm-From","android");
-        params.addHeader("Qm-From-Type","reta");
+        params.addHeader("Qm-From-Type","ptfwil");
         params.addHeader("Qm-Account-Token",App.store.getString("cookie_auth"));
         params.addHeader("User-Agent","wechatdevtools appservice port/62739");
         Log.e("AAAAAAA",params.toString());
@@ -220,7 +221,7 @@ public class Xutils {
         params.addHeader("Accept","*/*; v=1.0");
         params.addHeader("Referer", App.API_URL);
         params.addHeader("Qm-From","android");
-        params.addHeader("Qm-From-Type","reta");
+        params.addHeader("Qm-From-Type","ptfwil");
 //            .addHeader("Qm-Account-Token","")
         params.addHeader("User-Agent","wechatdevtools appservice port/62739");
 
@@ -264,7 +265,7 @@ public class Xutils {
         params.addHeader("Accept","*/*; v=1.0");
         params.addHeader("Referer", App.API_URL);
         params.addHeader("Qm-From","android");
-        params.addHeader("Qm-From-Type","reta");
+        params.addHeader("Qm-From-Type","ptfwil");
 //            .addHeader("Qm-Account-Token","")
         params.addHeader("User-Agent","wechatdevtools appservice port/62739");
 

@@ -35,6 +35,8 @@ public class goodsBean extends DataSupport implements Serializable,Cloneable{
     private String product_no;
     private long TaskId;
 
+    private String category_id;
+
       public String getProduct_no() {
         return product_no;
     }
@@ -218,4 +220,12 @@ public class goodsBean extends DataSupport implements Serializable,Cloneable{
           return goodsBean;
 
       }
+
+    public String getCategory_id() {
+        return category_id;
+    }
+
+    public void setCategory_id(String category_id) {
+        this.category_id = category_id;
+    }
 }

@@ -11,7 +11,7 @@
     <LinearLayout
         android:layout_marginTop="20dp"
         android:layout_width="550dp"
-        android:layout_height="435dp"
+        android:layout_height="wrap_content"
         android:orientation="vertical"
         >
 
@@ -19,7 +19,7 @@
         <RelativeLayout
             android:paddingTop="20dp"
             android:paddingBottom="20dp"
-            android:background="@drawable/shape_input_bg"
+            android:background="@drawable/shape_gray_bg"
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
 
@@ -136,10 +136,11 @@
         android:layout_marginTop="20dp"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:paddingTop="20dp"
-        android:paddingBottom="20dp"
+        android:paddingTop="15dp"
+        android:paddingBottom="15dp"
         android:paddingLeft="35dp"
         android:paddingRight="35dp"
+        android:layout_marginBottom="20dp"
         />
 
 </LinearLayout>

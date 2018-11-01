@@ -11,11 +11,13 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import com.qimai.xinlingshou.dialog.DialogUtils;
+
 import butterknife.ButterKnife;
 import butterknife.Unbinder;
 
 /**
- * 毅耘科技
+ *
  * Created by NIU on 2018/5/18.
  */
 
@@ -27,6 +29,7 @@ public abstract class BaseFragment extends Fragment{
     public View rootView;
     public boolean isFragmentShow;
     private Unbinder mUnBinder;
+    DialogUtils dialogUtils;
     @Override
     public void onAttach(Context context) {
         super.onAttach(context);
@@ -42,7 +45,6 @@ public abstract class BaseFragment extends Fragment{
 //        EventBus.getDefault().register(this);
         initView(rootView);
         initData();
-
         return rootView;
 
     }

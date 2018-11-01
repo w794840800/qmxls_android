@@ -30,7 +30,7 @@
         <item name="android:layout_height">0dp</item>
         <item name="android:layout_weight">1</item>
         <item name="android:textColor">#000</item>
-        <item name="android:background">@drawable/shape_keyborditem</item>
+        <item name="android:background">@drawable/shape_gray_keyboard</item>
 
     </style>
 
@@ -77,5 +77,26 @@
         <item name="windowNoTitle">true</item>
 
         <item name="android:windowIsFloating">true</item>
+
+    </style>
+
+
+    <style name="date_rb_style">
+
+
+
+        <!--android:layout_width="0dp"
+        android:layout_weight="1"
+        android:layout_height="wrap_content"
+        android:button="@null"-->
+
+        <item name="android:padding">10dp</item>
+        <item name="android:layout_width">90dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:button">@null</item>
+        <item name="android:gravity">center</item>
+        <item name="android:background">@drawable/select_rb</item>
+        <item name="android:layout_marginLeft">15dp</item>
+        <item name="android:textSize">14sp</item>
     </style>
 </resources>

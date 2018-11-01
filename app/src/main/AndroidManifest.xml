@@ -2,8 +2,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.qimai.xinlingshou"
     android:installLocation="preferExternal"
-    android:versionCode="2"
-    android:versionName="1.0.1">
+    android:versionCode="23"
+
+    android:versionName="1.2.5.1">
 
 
     <uses-permission android:name="android.hardware.usb.UsbAccessory"/>
@@ -25,7 +26,6 @@
     <uses-permission android:name="android.permission.MOUNT_UNMOUNT_FILESYSTEMS" />
     <uses-permission android:name="android.permission.READ_PHONE_STATE"/>
     <uses-permission android:name="android.permission.READ_LOGS"/>
-
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.access_wifi_state" />
     <uses-permission android:name="android.permission.access_network_state" />
@@ -35,7 +35,6 @@
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -60,9 +59,8 @@
     <application
         android:name="com.qimai.xinlingshou.App"
         android:allowBackup="true"
-        android:icon="@drawable/ic_logo"
+        android:icon="@mipmap/ic_logo"
         android:label="@string/app_name"
-        android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
 
@@ -72,7 +70,7 @@
             android:launchMode="standard"
             android:hardwareAccelerated="true"
             android:screenOrientation="landscape"
-            android:configChanges="orientation|keyboard|keyboardHidden"
+            android:configChanges="orientation|keyboard|keyboardHidden|navigation"
             android:windowSoftInputMode="adjustPan|stateHidden">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -125,6 +123,12 @@
             android:launchMode="singleTask"
             android:screenOrientation="landscape" />
 
+        <activity
+            android:name="com.tencent.bugly.beta.ui.BetaActivity"
+            android:configChanges="keyboardHidden|orientation|screenSize|locale"
+            android:theme="@android:style/Theme.Translucent" />
+
+
         <receiver android:name="com.qimai.xinlingshou.Receiver.DataReceiver"
             android:exported="true" android:enabled="true"
             >
@@ -159,6 +163,18 @@
 
 
         <service android:name="com.qimai.xinlingshou.Service.UploadService"/>
+
+
+        <provider
+            android:name="android.support.v4.content.FileProvider"
+            android:authorities="${applicationId}.fileProvider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/provider_paths"/>
+        </provider>
+
     </application>
 
 </manifest>

@@ -10,7 +10,7 @@ public class TableItem {
     private int[] align;
 
     public TableItem() {
-        text = new String[]{"test","test","test"};
+        text = new String[]{"select_enable_disenable","select_enable_disenable","select_enable_disenable"};
         width = new int[]{1,1,1};
         align = new int[]{0,0,0};
     }

@@ -19,6 +19,9 @@ import com.qimai.xinlingshou.R;
  */
 
 public class APPUtil {
+
+
+    private static final String TAG = "APPUtil";
     /**
      * 判断网络情况
      *
@@ -116,6 +119,7 @@ public class APPUtil {
     public static boolean isThirdPay(String scanResult){
 
 
+        Log.d(TAG, "isThirdPay: scanResult= "+scanResult);
         if (TextUtils.isEmpty(scanResult)){
 
             return false;
@@ -134,7 +138,6 @@ public class APPUtil {
                 ||values.contains("51")
                 ||values.contains("62"))
                 &&(scanResult.length()==18))){
-
                 return true;
         } if (values.equals("62")&&scanResult.length()==19){
 

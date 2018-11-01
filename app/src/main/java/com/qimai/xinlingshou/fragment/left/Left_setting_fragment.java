@@ -62,7 +62,7 @@ public class Left_setting_fragment extends BaseFragment {
                 .setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        ToastUtils.showShortToast("test");
+                        ToastUtils.showShortToast("select_enable_disenable");
                     }
                 });*/
     }

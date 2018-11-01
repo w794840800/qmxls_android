@@ -1,5 +1,6 @@
 package com.qimai.xinlingshou.dialog;
 
+import android.app.Dialog;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -13,10 +14,17 @@ import android.widget.TextView;
 
 import com.qimai.xinlingshou.R;
 import com.qimai.xinlingshou.bean.BalancePayBean;
+import com.qimai.xinlingshou.bean.ordersBean;
 import com.qimai.xinlingshou.callback.BlancePayCallBack;
 import com.qimai.xinlingshou.callback.NetWorkCallBack;
+import com.qimai.xinlingshou.fragment.right.MessageEvent;
 import com.qimai.xinlingshou.model.PayModel;
+import com.qimai.xinlingshou.utils.DecimalFormatUtils;
 import com.qimai.xinlingshou.utils.ToastUtils;
+
+import org.greenrobot.eventbus.EventBus;
+import org.greenrobot.eventbus.Subscribe;
+import org.greenrobot.eventbus.ThreadMode;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -25,7 +33,7 @@ import butterknife.Unbinder;
 
 
 /**
- * 当余额不足够的时候调这个Dialog
+ * 当余额不足够的时候调这个Dialog 混合支付
  */
 
 public class PayOrderMultipleDialogFragment extends BaseDialogFragment {
@@ -121,18 +129,19 @@ public class PayOrderMultipleDialogFragment extends BaseDialogFragment {
 
         totalMoney = balancePayBean.getOrderMoney();
 
-        tvOrderMoney.setText(totalMoney+"元");
+        tvOrderMoney.setText(DecimalFormatUtils.stringToMoneyWithOutSymbol(totalMoney)+"元");
         tvBlanceMoney.setText(balancePayBean.getBalanceTotal()+"元");
-        tvLeaveMoney.setText(balancePayBean.getOrderLeaveMoney()+"元");
+        tvLeaveMoney.setText(DecimalFormatUtils.doubleToMoneyWithOutSymbol(
+                Double.parseDouble(balancePayBean.getOrderLeaveMoney()))+"元");
 
        // tvOrderMoney.setText(totalMoney+"元");
     }
 
-
     @Override
     public void onStart() {
         super.onStart();
-
+        getDialog().setCanceledOnTouchOutside(false);
+        getDialog().setCancelable(false);
         /*WindowManager.LayoutParams layoutParams = getDialog().getWindow().getAttributes();
 
         layoutParams.width = 500;
@@ -143,6 +152,7 @@ public class PayOrderMultipleDialogFragment extends BaseDialogFragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
+
     }
 
     @OnClick({R.id.tv_ok, R.id.tv_cancel})
@@ -150,12 +160,28 @@ public class PayOrderMultipleDialogFragment extends BaseDialogFragment {
         switch (view.getId()) {
             case R.id.tv_ok:
 
+                ordersBean ordersBean = balancePayBean.getOrdersBean();
 
+                ordersBean.setUse_wallet(balancePayBean.getUse_wallet());
+                ordersBean.setTotalBalance(balancePayBean.getBalanceTotal());
+                ordersBean.setAmount((balancePayBean.getAmount()));
+
+                ordersBean.setWallet_amount(balancePayBean.getWallet_amount());
+                ordersBean.setStatus(1);
+
+                ordersBean.setLeaveBalance(balancePayBean.getBalanceLeave());
                 if (payModel==null){
 
                     payModel = new PayModel();
                 }
 
+                if (progressDialog==null){
+
+                    createProgressDialog();
+                }
+                //progressDialog.show();
+
+                DialogUtils.createDialog(getActivity());
                 payModel.uploadOrderInfo(balancePayBean.getOrdersBean(),new NetWorkCallBack() {
                     @Override
                     public void onSucess(Object data) {
@@ -166,16 +192,22 @@ public class PayOrderMultipleDialogFragment extends BaseDialogFragment {
                             @Override
                             public void onSucess(Object data) {
 
+                                //progressDialog.dismiss();
+
+                                DialogUtils.cancelDialog();
+
+                                //余额扣除成功就要通知会员界面，重新刷新
+                                NotificationClientInfoUpdate(userId);
 
                                // balance_leave = calculateLeavemoney(balancePayBean);
                                 if (blancePayCallBack!=null){
-
                                  //   Log.d(TAG, "onSucess: balance_leave= "+balance_leave);
                                    // balancePayBean.setBalanceLeave(balance_leave);
                                     balancePayBean.setType(BaseDialogFragment.BALANCE_MULTIP_PAY);
 
                                     /*balancePayBean.setOrderLeaveMoney(balancePayBean.getOrdersBean().getAmount());*/
                                     Log.d(TAG, "onSucess222: balancePayBean= "+balancePayBean.toString());
+
                                     blancePayCallBack.onPaySucess(BaseDialogFragment.BALANCE_MULTIP_PAY,balancePayBean);
                                 }
 
@@ -186,6 +218,10 @@ public class PayOrderMultipleDialogFragment extends BaseDialogFragment {
 
                             @Override
                             public void onFailed(String msg) {
+
+                                DialogUtils.cancelDialog();
+
+                                //progressDialog.dismiss();
 
                                 //ToastUtils.showShortToast(msg);
                                 if (blancePayCallBack!=null){
@@ -204,6 +240,8 @@ public class PayOrderMultipleDialogFragment extends BaseDialogFragment {
                     @Override
                     public void onFailed(String msg) {
 
+                        progressDialog.dismiss();
+
                         ToastUtils.showLongToast(msg);
                     }
                 });
@@ -216,4 +254,10 @@ public class PayOrderMultipleDialogFragment extends BaseDialogFragment {
                 break;
         }
     }
+
+
+
+
+
+
 }

@@ -7,6 +7,7 @@ package com.qimai.xinlingshou.fragment.left;
 public enum LeftFragmentType {
 
     LEFT_CRASHIER,
-    LEFT_SETTING
+    LEFT_SETTING,
+    LEFT_ORDER
 
 }

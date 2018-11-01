@@ -24,7 +24,7 @@
             android:gravity="center"
             android:textColor="#000"
             android:textSize="22sp"
-            android:text="请输入会员手机号，会员号查询"
+            android:hint="请输入会员手机号，会员号查询"
             />
 
         
@@ -135,7 +135,7 @@
             android:id="@+id/tv_scan_tips"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textColor="@color/TvGray"
+            android:textColor="@color/TvBlack"
             android:layout_marginTop="5dp"
             android:textSize="18sp"
             android:text="扫码枪可直接扫描用户码登录"

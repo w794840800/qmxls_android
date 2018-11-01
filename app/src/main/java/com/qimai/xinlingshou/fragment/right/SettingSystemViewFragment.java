@@ -6,8 +6,10 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ArrayAdapter;
@@ -21,12 +23,11 @@ import com.qimai.xinlingshou.R;
 import com.qimai.xinlingshou.activity.ChooseStoreActivity;
 import com.qimai.xinlingshou.activity.LoginActivity;
 import com.qimai.xinlingshou.activity.MainActivity;
+import com.qimai.xinlingshou.bean.PrintInfoBean;
+import com.qimai.xinlingshou.bean.RechargePrint;
 import com.qimai.xinlingshou.bean.goodsBean;
-import com.qimai.xinlingshou.utils.AidlUtil;
+import com.qimai.xinlingshou.utils.BluetoothConnectUtils;
 import com.qimai.xinlingshou.utils.DecimalFormatUtils;
-import com.qimai.xinlingshou.utils.ESCUtil;
-import com.qimai.xinlingshou.utils.Pos;
-import com.qimai.xinlingshou.utils.ToastUtils;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
@@ -43,6 +44,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.UUID;
 
 import butterknife.BindView;
@@ -50,8 +53,19 @@ import butterknife.OnClick;
 import butterknife.Unbinder;
 import android.app.AlertDialog.Builder;
 import android.bluetooth.*;
+import android.widget.Toast;
+
 /**
- * Created by wanglei on 18-5-19.
+ * Created by wanglei on 18-5-19.蓝牙设备
+ *
+ *
+ *
+ * 1. 判断蓝牙是否打开或者有没有配对成功的
+ *
+ *      （1）没有开、或者开了没有配对，弹出对话框提醒去设置
+ * 2， 配对成功 ,获取已配对列表
+ *
+ *
  */
 
 public class SettingSystemViewFragment extends BaseFragment {
@@ -74,26 +88,20 @@ public class SettingSystemViewFragment extends BaseFragment {
     private static String encoding = "gbk";
 
 
-
-
-
-
-
-
     //    private Spinner mSpinner=null;
-    public List<String> mpairedDeviceList=new ArrayList<String>();
+    public List<String> mpairedDeviceList = new ArrayList<String>();
     public ArrayAdapter<String> mArrayAdapter;
-    public Builder dialog=null;
+    public Builder dialog = null;
     public BluetoothAdapter mBluetoothAdapter = null;   //创建蓝牙适配器
-    public BluetoothDevice mBluetoothDevice=null;
-    public BluetoothSocket mBluetoothSocket=null;
-    OutputStream mOutputStream=null;
+    public BluetoothDevice mBluetoothDevice = null;
+    public BluetoothSocket mBluetoothSocket = null;
+    OutputStream mOutputStream = null;
     /*Hint: If you are connecting to a Bluetooth serial board then try using
      * the well-known SPP UUID 00001101-0000-1000-8000-00805F9B34FB. However
      * if you are connecting to an Android peer then please generate your own unique UUID.*/
     private static final UUID SPP_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
 
-    Set<BluetoothDevice> pairedDevices=null;
+    Set<BluetoothDevice> pairedDevices = null;
 
 
     @Override
@@ -101,19 +109,19 @@ public class SettingSystemViewFragment extends BaseFragment {
 
         try {
             String store = App.store.getString("storeinfo");
-            if (store!=null){
-            storeName.setText(new JSONObject(store).getString("name"));}
-            else {
+            if (store != null) {
+                storeName.setText(new JSONObject(store).getString("name"));
+            } else {
                 storeName.setText("企小店");
             }
         } catch (JSONException e) {
             e.printStackTrace();
         }
 
-        mBluetoothAdapter=BluetoothAdapter.getDefaultAdapter();
+        mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
 //        ButtonListener buttonListener=new ButtonListener();
 
-        dialog=new AlertDialog.Builder(getActivity());
+        dialog = new AlertDialog.Builder(getActivity());
         dialog.setTitle("企迈收银提醒");
         dialog.setMessage(getString(R.string.XPrinterhint));
         dialog.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
@@ -136,48 +144,44 @@ public class SettingSystemViewFragment extends BaseFragment {
         });
 
         mpairedDeviceList.add(this.getString(R.string.PlsChoiceDevice));
-        mArrayAdapter=new ArrayAdapter<String>(getActivity(), android.R.layout.simple_spinner_dropdown_item,mpairedDeviceList);
+        mArrayAdapter = new ArrayAdapter<String>(getActivity(), android.R.layout.simple_spinner_dropdown_item, mpairedDeviceList);
         mSpinner.setAdapter(mArrayAdapter);
-        mSpinner.setOnTouchListener(new Spinner.OnTouchListener(){
+        mSpinner.setOnTouchListener(new Spinner.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 // TODO Auto-generated method stub
-                if (event.getAction()!=MotionEvent.ACTION_UP) {
+                if (event.getAction() != MotionEvent.ACTION_UP) {
                     return false;
                 }
                 try {
-                    if (mBluetoothAdapter==null) {
+                    if (mBluetoothAdapter == null) {
 //                        mTipTextView.setText(getString(R.string.NotBluetoothAdapter));
 //                        PrintfLogs(getString(R.string.NotBluetoothAdapter));
-                    }
-                    else if (mBluetoothAdapter.isEnabled()) {
-                        String getName=mBluetoothAdapter.getName();
-                        pairedDevices=mBluetoothAdapter.getBondedDevices();
-                        while (mpairedDeviceList.size()>1) {
+                    } else if (mBluetoothAdapter.isEnabled()) {
+                        String getName = mBluetoothAdapter.getName();
+                        pairedDevices = mBluetoothAdapter.getBondedDevices();
+                        while (mpairedDeviceList.size() > 1) {
                             mpairedDeviceList.remove(1);
                         }
-                        if (pairedDevices.size()==0) {
+                        if (pairedDevices.size() == 0) {
                             dialog.create().show();
                         }
                         for (BluetoothDevice device : pairedDevices) {
                             // Add the name and address to an array adapter to show in a ListView
-                            getName=device.getName() + "--" + device.getAddress();
+                            getName = device.getName() + "--" + device.getAddress();
                             mpairedDeviceList.add(getName);
                         }
-                    }
-                    else {
+                    } else {
 //                        PrintfLogs("BluetoothAdapter not open...");
                         dialog.create().show();
                     }
-                }
-                catch (Exception e) {
+                } catch (Exception e) {
                     // TODO: handle exception
 //                    mprintfData.setText(e.toString());
                 }
                 return false;
             }
         });
-
 
 
     }
@@ -196,37 +200,46 @@ public class SettingSystemViewFragment extends BaseFragment {
     }
 
 
-    @OnClick({R.id.tv_exit,R.id.change_store,R.id.buttonConnects})
+    @OnClick({R.id.tv_exit, R.id.change_store, R.id.buttonConnects})
     public void onViewClicked(View view) {
         switch (view.getId()) {
             case R.id.tv_exit:
                 App.removeUser();
                 Intent intent = new Intent(getActivity(), LoginActivity.class);
-//                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK | Intent.FLAG_ACTIVITY_NEW_TASK);
 
                 MessageEvent messageEvent = new MessageEvent("change_store");
                 EventBus.getDefault().post(messageEvent);
                 getActivity().startActivity(intent);
                 getActivity().finish();
-            break;
-        case R.id.change_store:
+                break;
+            case R.id.change_store:
                 Intent intent1 = new Intent(getActivity(), ChooseStoreActivity.class);
-               // intent1.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK | Intent.FLAG_ACTIVITY_NEW_TASK);
+                // intent1.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK | Intent.FLAG_ACTIVITY_NEW_TASK);
 
            /* MessageEvent messageEvent1 = new MessageEvent("change_store");
             EventBus.getDefault().post(messageEvent1);*/
 
-            //getActivity().finish();
+                //getActivity().finish();
                 getActivity().startActivity(intent1);
-            break;
+                break;
             case R.id.buttonConnects:
                 // ToastUtils.showShortToast("tv_pay_setting");
-                String temString=(String) mSpinner.getSelectedItem();
-                if (mSpinner.getSelectedItemId()!=0) {
-                    if (buttonConnect.getText()!=getString(R.string.Disconnected)) {
+                String temString = (String) mSpinner.getSelectedItem();
+                if (mSpinner.getSelectedItemId() != 0) {
+                    if (buttonConnect.getText() != getString(R.string.Disconnected)) {
                         try {
+
+                            BluetoothConnectUtils.getInstance().disconnect();
+
                             mOutputStream.close();
+
                             mBluetoothSocket.close();
+
+                            MessageEvent messageEvent1 = new MessageEvent(MessageEvent.PRINT_CONNECT);
+                            messageEvent1.setTypeBoolean(false);
+
+                            EventBus.getDefault().post(messageEvent1);
+
                             buttonConnect.setText(getString(R.string.Disconnected));
 //                    setButtonEnadle(false);
                             buttonConnect.setEnabled(true);
@@ -236,15 +249,20 @@ public class SettingSystemViewFragment extends BaseFragment {
                         }
                         return;
                     }
-                    temString=temString.substring(temString.length()-17);
+                    temString = temString.substring(temString.length() - 17);
                     try {
                         buttonConnect.setText(getString(R.string.Connecting));
-                        mBluetoothDevice=mBluetoothAdapter.getRemoteDevice(temString);
-                        mBluetoothSocket=mBluetoothDevice.createRfcommSocketToServiceRecord(SPP_UUID);
+                        mBluetoothDevice = mBluetoothAdapter.getRemoteDevice(temString);
+                        mBluetoothSocket = mBluetoothDevice.createRfcommSocketToServiceRecord(SPP_UUID);
                         mBluetoothSocket.connect();
-                        mOutputStream=mBluetoothSocket.getOutputStream();
-
+                        mOutputStream = mBluetoothSocket.getOutputStream();
                         buttonConnect.setText(getString(R.string.Connected));
+
+                        //连接成功，通知Right_crashier_fragment去更新图标
+                        MessageEvent messageEvent1 = new MessageEvent(MessageEvent.PRINT_CONNECT);
+                        messageEvent1.setTypeBoolean(true);
+
+                        EventBus.getDefault().post(messageEvent1);
 //                        printText("uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu");
 //                        printTextNewLine("订 单 号："+"77777777777777777777777777");
 //                        printTextNewLine("订 单 号："+"77777777777777777777777777");
@@ -270,8 +288,7 @@ public class SettingSystemViewFragment extends BaseFragment {
 //                PrintfLogs(getString(R.string.ConnectFailed)+e.toString());
                     }
 
-                }
-                else {
+                } else {
 //            PrintfLogs("Pls select a bluetooth device...");
                 }
 
@@ -281,7 +298,6 @@ public class SettingSystemViewFragment extends BaseFragment {
     }
 
 
-
     @Override
     public void onDestroy() {
         super.onDestroy();
@@ -289,155 +305,386 @@ public class SettingSystemViewFragment extends BaseFragment {
         EventBus.getDefault().unregister(this);
     }
 
-    @Subscribe(threadMode=ThreadMode.MAIN)
-    public void onMessageEvent(MessageEvent messageEvent){
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onMessageEvent(MessageEvent messageEvent) {
         try {
 
             if (messageEvent.getType().equals("ThridFragmentdata")) {
-//                Log.d(TAG, "onEvent: ThridFragmentdata= " + messageEvent.);
+             Log.d(TAG, "onEvent: ThridFragmentdata= ");
 
-//                ToastUtils.showLongToast(messageEvent.getThridFragmentdata());
-                String store= messageEvent.getThridFragmentdata();
-                JSONObject storeinfo = null;
-                try {
+               // ToastUtils.showLongToast(messageEvent.getThridFragmentdata());
+                //String store = messageEvent.getThridFragmentdata();
 
-                    storeinfo = new JSONObject(store);
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
 
-                    printLocation(1);
-                    bold(true);
-                    printTabSpace(2);
-                    printTextNewLine(storeinfo.getString("name"));
+                        try {
+
+                            PrintInfoBean mPrintInfoBean = messageEvent.getPrintInfoBean();
+
+                            Log.d(TAG, "onMessageEvent: mPrintInfoBean= "+mPrintInfoBean.toString());
+
+                            JSONObject storeinfo = null;
 
 
-                    printLocation(0);
-                    printTextNewLine("销售订单:" +messageEvent.getGood_order());
-                    Date date = new Date();
-                    SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
+                            //  storeinfo = new JSONObject(store);
+
+                            printLocation(1);
+                            bold(true);
+                            printTabSpace(2);
+
+
+                            //printTextNewLine(storeinfo.getString("name"));
+                            printTextNewLine(mPrintInfoBean.getStoreName());
+                            printLine(2);
+                            printLocation(0);
+                            bold(false);
+
+                            // printTextNewLine("销售订单:" + messageEvent.getGood_order());
+
+                            printTextNewLine("销售订单:" + mPrintInfoBean.getStoreOrderId());
+                   /* Date date = new Date();
+                    SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());*/
 //
-                    printTextNewLine("交易时间:" + format.format(date));
+                            //printTextNewLine("交易时间:" + format.format(date));
+                            printTextNewLine("交易时间:" + mPrintInfoBean.getOrderTime());
 
-                    printLocation(0);
-                    printTextNewLine("--------------------------------");
-                    bold(false);
-                    setTextSize(70);
-                    printTextNewLine( App.formatStr("商品名称") + " "
-                                    + App.formatStr2("数量")+"  单价");
+                            printLocation(0);
+                            printTextNewLine("--------------------------------");
+                            bold(false);
+                            setTextSize(70);
 
-//                    AidlUtil.getInstance().printText(
-//                            storeinfo.getString("name"), 2, 50, true,
-//                            false, ESCUtil.alignCenter());
-//                    Date date = new Date();
-//                    SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
-//                    AidlUtil.getInstance().printText("销售订单:" + messageEvent.getGoodorder(), 2, 35, false,
-//                            false, ESCUtil.alignLeft());
-//                    AidlUtil.getInstance().printText("交易时间:" + format.format(date), 1, 35, false,
-//                            false, ESCUtil.alignLeft());
-//                    AidlUtil.getInstance().printText("_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _", 2, 25, false, false,
-//                            null);
-//                    AidlUtil.getInstance().printLine(1);
-//                    AidlUtil.getInstance().printText(
-//                            App.formatStr("商品名称") + ""
-//                                    + App.formatStr2("数量"), 0, 28, false, false,
-//                            ESCUtil.alignLeft());
+
+
+
+                            printTextNewLine(App.formatStr("商品名称") + ""
+                                    + App.formatStr2("数量") + App.formatStr2("单价")+App.formatStr2("金额"));
+
+                            bold(false);
+                            setTextSize(70);
+
+
+
+                            for (goodsBean entry:
+                                    mPrintInfoBean.getGoodsBeanArrayList()) {
+
+                                printTextNewLine(App.formatStr(entry.getGoodsName()) + " "
+                                        + App.formatStr2(entry.getNumber()+"")
+                                        + App.formatStr2(DecimalFormatUtils.doubleToMoneyWithOutSymbol(entry.getPrice())+"")+App.formatStr2(DecimalFormatUtils.doubleToMoneyWithOutSymbol(entry.getPrice()*entry.getNumber())));
+
+                            }
+
+
+
+                    /*printTextNewLine(App.formatStr("黄焖鸡") + " "
+                            + App.formatStr2("1") + App.formatStr2("10.00")+App.formatStr2("20.00"));
+
+
+                    printTextNewLine(App.formatStr("黄猛击和借记卡和") + " "
+                            + App.formatStr2("12") + App.formatStr2("4.00")+App.formatStr2("120.00"));
+
+                    printTextNewLine(App.formatStr("梅干菜扣肉") + " "
+                            + App.formatStr2("8") + App.formatStr2("4.00")+App.formatStr2("120.00"));
+*/
+
+//                    for (Map.Entry<String, goodsBean> entry : messageEvent.getSelectedGoodsMap().entrySet()) {
 //
-//                    AidlUtil.getInstance().printText(
-//                            //formatRight("￥" + jsinfo.getString("price")),
-//                            "单价" ,
-//                            1, 28, false, false,
-//                            ESCUtil.alignLeft());
-                    for (Map.Entry<String, goodsBean> entry : messageEvent.getSelectedGoodsMap().entrySet()) {
-                        bold(false);
-                        setTextSize(70);
-
-                        printTextNewLine( App.formatStr(entry.getValue().getGoodsName()) +"  x"
-                                + App.formatStr2(""+entry.getValue().getNumber())+""+DecimalFormatUtils.doubleToMoney2(entry.getValue().getPrice()));
-//                        printTextNewLine(
-//                                App.formatStr(entry.getValue().getGoodsName()) + " x"
-//                                        + App.formatStr2(""+entry.getValue().getNumber()))+ DecimalFormatUtils.doubleToMoney(entry.getValue().getPrice());
-                    }
-                    printLocation(0);
-                    printTextNewLine("--------------------------------");
-//                        String namse = entry.getValue().getGoodsName();
-//
-////                        AidlUtil.getInstance().printText(
-////                                App.formatStr(entry.getValue().getGoodsName()) + " x"
-////                                        + App.formatStr2(""+entry.getValue().getNumber()), 0, 28, false, false,
-////                                ESCUtil.alignLeft());
-////
-////                        AidlUtil.getInstance().printText(
-////                                //formatRight("￥" + jsinfo.getString("price")),
-////                                "" + DecimalFormatUtils.doubleToMoney(entry.getValue().getPrice()),
-////                                1, 28, false, false,
-////                                ESCUtil.alignLeft());
-//                        printTextNewLine(App.formatStr(entry.getValue().getGoodsName())+"          "+App.formatStr2(""+entry.getValue().getNumber())+"     "+DecimalFormatUtils.doubleToMoney(entry.getValue().getPrice()));
-//                        printLocation(20, 1);
+////                        printTextNewLine(App.formatStr(entry.getValue().getGoodsName()) + "  x"
+////                                + App.formatStr2("" + entry.getValue().getNumber()) + "" + DecimalFormatUtils.doubleToMoney2(entry.getValue().getPrice()));
 //                    }
-//                    AidlUtil.getInstance().printText("_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _", 2, 25, false, false,
-//                            null);
-                    printTextNewLine("合    计：" + messageEvent.getSelectedGoodsMap().size());
-                    printTextNewLine("订单金额：" +messageEvent.getTotalMoney());
-                    printTextNewLine("实付金额："+messageEvent.getShifu_pay() );
-                    printTextNewLine("优惠金额：" +messageEvent.getCheap_money());
-                    printTextNewLine("支付方式：" );
-                    printLocation(0);
-                    printTextNewLine("--------------------------------");
-                    printTextNewLine("谢谢您的惠顾，欢迎下次光临！");
-////            AidlUtil.getInstance().printLine(1);
-//                    AidlUtil.getInstance().printText("合   计：" + messageEvent.getSelectedGoodsMap().size(), 1, 35,
-//                            false, false, ESCUtil.alignLeft());
-//                    AidlUtil.getInstance().printLine(1);
-//                    AidlUtil.getInstance().printText("订单金额：" + DecimalFormatUtils.doubleToMoney(messageEvent.getTotalMoney()), 2, 35,
-//                            false, false, ESCUtil.alignLeft());
-//                    AidlUtil.getInstance().printText("实付金额：" +
-//                                    messageEvent.getShifu_pay(), 1, 35,
-//                            false, false, ESCUtil.alignLeft());
-//                    AidlUtil.getInstance().printLine(1);
-//                    AidlUtil.getInstance().printText("优惠金额："+"¥ "+messageEvent.getCheap_money(), 1, 35,
-//                            false, false, ESCUtil.alignLeft());
-//                    AidlUtil.getInstance().printLine(1);
-//            /*if (moneyBean!=null) {
-//                AidlUtil.getInstance().printText("优惠券  ："+
-//                                , 2, 35,
-//                        false, false, ESCUtil.alignLeft());
-//            }else{
-//
-//                AidlUtil.getInstance().printText("优惠券  ：0", 2, 35,
-//                        false, false, ESCUtil.alignLeft());
-//            }*/
-//                    AidlUtil.getInstance().printText("支付方式："+messageEvent.getType(), 2, 35,
-//                            false, false, ESCUtil.alignLeft());
-//                    AidlUtil.getInstance().printText("_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _", 1, 25, false, false,
-//                            null);
-//                    AidlUtil.getInstance().printLine(1);
-//                    AidlUtil.getInstance().printText("  谢谢您的惠顾，欢迎下次光临！", 2, 35, false,
-//                            false, null);
-//
-//                    AidlUtil.getInstance().print3Line();
-//
-//                    AidlUtil.getInstance().cutPrint();
-//                    MessageEvent  messageEvent2 = new MessageEvent("allDelete");
-//                    EventBus.getDefault().post(messageEvent2);
-//                    ((MainActivity)activity).showRightCrashierLayout();
-//
-////                    uploadDateToServe(mOrderbean);
-////
-////                    isPaySucess = true;
-//
-//                    MessageEvent messageEventSucess = new MessageEvent("paySucess");
-//                    EventBus.getDefault().post(messageEventSucess);
+                            printLocation(0);
+                            printTextNewLine("--------------------------------");
+                            /*printTextNewLine("合    计：" + App.formatRight2("￥"+messageEvent.getSelectedGoodsMap().size()));*/
 
 
-printLine(5);
-                    ((MainActivity)activity).showRightCrashierLayout();
-                    //设置左侧整单取消与收款可点击
-                    EventBus.getDefault().post(new MessageEvent("cancelCollection"));
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
+                            printTextNewLine("合    计：" + App.formatRight2(""+mPrintInfoBean.getGoodsBeanArrayList()
+                                    .size()));
+
+
+
+
+                            printTextNewLine("订单金额：" + App.formatRight2(mPrintInfoBean.getOrderTotal()));
+
+                            printTextNewLine("优惠金额：" + App.formatRight2(DecimalFormatUtils.stringToMoney(mPrintInfoBean.getDiscountMoney())));
+
+
+                            printTextNewLine("应收金额：" + App.formatRight2(mPrintInfoBean.getActualPay()));
+
+
+
+                            int typeid = mPrintInfoBean.getMethod();
+
+
+                            if (mPrintInfoBean.isMultiplut()){
+
+                                printTextNewLine("支付方式："+App.formatRight2("混合支付"));
+
+                            }else{
+                                printTextNewLine("支付方式："+App.formatRight2(""+mPrintInfoBean.getPayType()));
+                            }
+
+
+
+                            //支付宝/微信
+                            if (typeid==1){
+
+
+                                printTextNewLine("扫码支付：" + App.formatRight2(mPrintInfoBean.getActualPay()));
+
+
+
+
+                                if (!TextUtils.isEmpty(mPrintInfoBean.getUserMobile())){
+
+
+                           /* AidlUtil.getInstance().printText(formatLife("会员卡号："), 0, 28, false, false,
+                                    ESCUtil.alignLeft());
+                            AidlUtil.getInstance().printText(
+                                    formatRight(""+printInfoBean.getUserMobile()), 1, 30, false,
+                                    false, ESCUtil.alignLeft());
+                        */
+                                    printLocation(0);
+                                    printTextNewLine("--------------------------------");
+
+                                    printTextNewLine("会员卡号：" +mPrintInfoBean.getUserMobile());
+
+                                }
+
+                                //标记支付
+                            }else if (typeid==3){
+
+
+
+                                printTextNewLine("标记支付：" + App.formatRight2(mPrintInfoBean.getActualPay()));
+
+
+
+
+                                if (!TextUtils.isEmpty(mPrintInfoBean.getUserMobile())){
+
+
+                           /* AidlUtil.getInstance().printText(formatLife("会员卡号："), 0, 28, false, false,
+                                    ESCUtil.alignLeft());
+                            AidlUtil.getInstance().printText(
+                                    formatRight(""+printInfoBean.getUserMobile()), 1, 30, false,
+                                    false, ESCUtil.alignLeft());
+                        */
+                                    printLocation(0);
+                                    printTextNewLine("--------------------------------");
+
+                                    printTextNewLine("会员卡号：" +mPrintInfoBean.getUserMobile());
+
+                                }
+
+                                //余额支付
+                            }else if (typeid==4){
+
+
+                                printTextNewLine("余额支付：" + App.formatRight2(mPrintInfoBean.getActualPay()));
+
+
+
+
+                                if (!TextUtils.isEmpty(mPrintInfoBean.getUserMobile())){
+
+
+                           /* AidlUtil.getInstance().printText(formatLife("会员卡号："), 0, 28, false, false,
+                                    ESCUtil.alignLeft());
+                            AidlUtil.getInstance().printText(
+                                    formatRight(""+printInfoBean.getUserMobile()), 1, 30, false,
+                                    false, ESCUtil.alignLeft());
+                        */
+                                    printLocation(0);
+                                    printTextNewLine("--------------------------------");
+
+                                    printTextNewLine("会员卡号：" +mPrintInfoBean.getUserMobile());
+
+
+                                    printTextNewLine("账户余额：" +DecimalFormatUtils.stringToMoneyWithOutSymbol(mPrintInfoBean.getLeaveBalance())+"元");
+
+                                }
+
+                            }else if (typeid==2){
+
+
+
+                                printTextNewLine("现金支付：" + App.formatRight2("￥ "+DecimalFormatUtils.stringToMoneyWithOutSymbol(mPrintInfoBean.getActualCrashPay())));
+
+
+                                printTextNewLine("找   零：" + App.formatRight2(mPrintInfoBean.getReturnCharge()));
+
+
+
+                                // String select_enable_disenable = mPrintInfoBean.getReturnCharge().substring(0,1);
+                       /* Log.d(TAG, "onMessageEvent: mPrintInfoBean.getReturnCharge()= "
+
+
+                               + select_enable_disenable+" hascode= " +Integer.valueOf(select_enable_disenable)
+
+
+                        );*/
+                                if (!TextUtils.isEmpty(mPrintInfoBean.getUserMobile())){
+
+
+                           /* AidlUtil.getInstance().printText(formatLife("会员卡号："), 0, 28, false, false,
+                                    ESCUtil.alignLeft());
+                            AidlUtil.getInstance().printText(
+                                    formatRight(""+printInfoBean.getUserMobile()), 1, 30, false,
+                                    false, ESCUtil.alignLeft());
+                        */
+                                    printLocation(0);
+                                    printTextNewLine("--------------------------------");
+
+                                    printTextNewLine("会员卡号：" +mPrintInfoBean.getUserMobile());
+
+                                }
+
+
+                                //混合支付
+                            }else if (typeid==5){
+
+
+
+                                printTextNewLine("余额支付：" + App.formatRight2(
+                                        "￥ "+mPrintInfoBean.getBalancePay()));
+
+
+                                if (mPrintInfoBean.getPayType().contains("现金")){
+
+                                    printTextNewLine(mPrintInfoBean.getPayType()+"：" + App.formatRight2(
+                                            "￥ "+DecimalFormatUtils.stringToMoneyWithOutSymbol(mPrintInfoBean.getActualCrashPay())));
+
+
+                                }else{
+
+                                    printTextNewLine(mPrintInfoBean.getPayType()+"：" + App.formatRight2(
+                                            ""+DecimalFormatUtils.stringToMoney(mPrintInfoBean.getLeaveOrderPay())));
+
+                                }
+
+
+                                if (!TextUtils.isEmpty(mPrintInfoBean.getReturnCharge())){
+
+
+                                    printTextNewLine("找零金额：" + App.formatRight2(
+                                            ""+mPrintInfoBean.getReturnCharge()));
+
+                                }
+
+
+                                printLocation(0);
+                                printTextNewLine("--------------------------------");
+
+                                printTextNewLine("会员卡号：" +mPrintInfoBean.getUserMobile());
+
+
+                                printTextNewLine("账户余额：" +"0.00元");
+
+                            }
+
+
+                            printLocation(0);
+                            printTextNewLine("--------------------------------");
+                            printTextNewLine("谢谢您的惠顾，欢迎下次光临！");
+
+                            printLine(5);
+                            feedAndCut();
+                            //((MainActivity) activity).showRightCrashierLayout();
+                            //设置左侧整单取消与收款可点击
+                            // EventBus.getDefault().post(new MessageEvent("cancelCollection"));
+
+
+
+                        }catch (Exception e){
+
+                        }
+
+
+
+                    }
+                }).start();
+
+
 
             }
-        }catch (Exception e){
 
+
+            if (messageEvent.getType().equals(MessageEvent.RECHARGE_PRINT)){
+
+                RechargePrint rechargePrint = messageEvent.getRechargePrint();
+
+                Log.d(TAG, "onMessageEvent:rechargePrint=  "+rechargePrint.toString());
+                printLocation(1);
+                bold(true);
+                printTabSpace(2);
+                //printTextNewLine(storeinfo.getString("name"));
+                printTextNewLine(rechargePrint.getStoreName());
+                printLine(2);
+                printLocation(0);
+                bold(false);
+
+                // printTextNewLine("销售订单:" + messageEvent.getGood_order());
+
+                printTextNewLine("销售订单:" + rechargePrint.getOrderNo());
+                   /* Date date = new Date();
+                    SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());*/
+//
+                //printTextNewLine("交易时间:" + format.format(date));
+                printTextNewLine("交易时间:" + rechargePrint.getTime());
+                printTextNewLine("订单类型:" + rechargePrint.getType());
+
+                printLocation(0);
+                printTextNewLine("--------------------------------");
+                bold(false);
+                setTextSize(70);
+
+
+                printTextNewLine(App.formatStr("商品名称") + ""
+                        + App.formatStr2("充值") + App.formatStr2("赠送")+App.formatStr2("总额"));
+
+                /*printTextNewLine(App.formatStr(rechargePrint.getRechargeCardName() + " "
+                        + App.formatStr2(rechargePrint.getRechargeMoney()+"")
+                        + App.formatStr2(DecimalFormatUtils.stringToMoneyWithOutSymbol(rechargePrint.getRechargeReward())+"")+App.formatStr2(DecimalFormatUtils.stringToMoneyWithOutSymbol(rechargePrint.getBalanceTotalCanGet()))));
+*/
+                printTextNewLine(App.formatStr(""+rechargePrint.getRechargeCardName()) + ""
+                        + App.formatStr2(""+rechargePrint.getRechargeMoney()) + App.formatStr2(""+rechargePrint.getRechargeReward())+App.formatStr2(""+rechargePrint.getBalanceTotalCanGet()));
+
+                bold(false);
+                setTextSize(70);
+
+                printLocation(0);
+                printTextNewLine("--------------------------------");
+
+
+                if (rechargePrint.getPayType().equals("010")){
+
+                    printTextNewLine("微信支付：" + App.formatRight2(
+                            "￥ "+rechargePrint.getTotalAmount()));
+                }else{
+
+                    printTextNewLine("支付宝支付：" + App.formatRight2(
+                            "￥ "+rechargePrint.getTotalAmount()));
+                }
+
+                printTextNewLine("会员卡号：" +rechargePrint.getMobile());
+
+
+                printTextNewLine("账户余额：" +DecimalFormatUtils.stringToMoneyWithOutSymbol(rechargePrint.getBalance_total())+"元");
+
+                printLocation(0);
+                printTextNewLine("--------------------------------");
+                printTextNewLine("谢谢您的惠顾，欢迎下次光临！");
+
+
+                printLine(5);
+                feedAndCut();
+            }
+
+
+        } catch (Exception e) {
+
+            Log.d(TAG, "onMessageEvent: e= "+e.getMessage());
         }
 
 
@@ -610,6 +857,7 @@ printLine(5);
         mOutputStream.write(weight);
         mOutputStream.flush();
     }
+
     /**
      * 打印文字
      *
@@ -623,6 +871,7 @@ printLine(5);
         fontSizeSetBig(2);
         mOutputStream.flush();
     }
+
     /**
      * 新起一行，打印文字
      *
@@ -642,12 +891,13 @@ printLine(5);
 
     /**
      * 设置字体大小
-     * */
+     */
 
-    protected void setTextSize(int size)throws IOException{
+    protected void setTextSize(int size) throws IOException {
         mOutputStream.write(CMD_FontSize(size).getBytes("gbk"));
         mOutputStream.flush();
     }
+
     // / 字体的大小
     // / </summary>
     // / <param name="nfontsize">0:正常大小 1:两倍高 2:两倍宽 3:两倍大小 4:三倍高 5:三倍宽 6:三倍大小
@@ -730,6 +980,7 @@ printLine(5);
         }
         return _cmdstr;
     }
+
     /**
      * 字体变大为标准的n倍
      *
@@ -770,6 +1021,38 @@ printLine(5);
         result[2] = realSize;
         return result;
     }
+    
 
+    private static Boolean isExit = false;
+    private static Boolean hasTask = false;
+    Timer tExit = new Timer();
+    TimerTask task = new TimerTask() {
+
+        @Override
+        public void run() {
+            isExit = false;
+            hasTask = true;
+        }
+    };
+
+
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        // TODO Auto-generated method stub
+        if (keyCode == KeyEvent.KEYCODE_BACK) {
+//                        System.out.println("user back down");
+            if (isExit == false) {
+                isExit = true;
+                Toast.makeText(getActivity(), "再按一次退出程序", Toast.LENGTH_SHORT).show();
+                if (!hasTask) {
+                    tExit.schedule(task, 2000);
+                }
+            } else {
+            }
+            getActivity().finish();
+            System.exit(0);
+        }
+
+                return false;
+}
 
 }

@@ -2,7 +2,12 @@ package com.qimai.xinlingshou.fragment.left;
 
 import android.app.Activity;
 import android.app.Dialog;
+import android.app.Fragment;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Build;
@@ -11,7 +16,6 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.support.annotation.RequiresApi;
-import android.support.v4.app.DialogFragment;
 import android.support.v7.util.DiffUtil;
 import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.LinearLayoutManager;
@@ -27,7 +31,9 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.google.gson.JsonObject;
+import com.google.gson.Gson;
+import com.jakewharton.rxbinding2.widget.RxTextView;
+import com.nostra13.universalimageloader.utils.L;
 import com.qimai.xinlingshou.App;
 import com.qimai.xinlingshou.BaseFragment;
 import com.qimai.xinlingshou.R;
@@ -40,6 +46,9 @@ import com.qimai.xinlingshou.bean.BalancePayBean;
 import com.qimai.xinlingshou.bean.DiscountBean;
 import com.qimai.xinlingshou.bean.MoneyBean;
 import com.qimai.xinlingshou.bean.PrintInfoBean;
+import com.qimai.xinlingshou.bean.RechargeBean;
+import com.qimai.xinlingshou.bean.RechargeOrderBean;
+import com.qimai.xinlingshou.bean.RechargePrint;
 import com.qimai.xinlingshou.bean.SecondScreenInfo;
 import com.qimai.xinlingshou.bean.VipInfo;
 import com.qimai.xinlingshou.bean.goodsBean;
@@ -52,26 +61,27 @@ import com.qimai.xinlingshou.calculate.VipCrashSuper;
 import com.qimai.xinlingshou.calculate.ZhekouCrash;
 import com.qimai.xinlingshou.callback.BlancePayCallBack;
 import com.qimai.xinlingshou.callback.NetWorkCallBack;
+import com.qimai.xinlingshou.callback.NetWorkCallBack2;
 import com.qimai.xinlingshou.dialog.BaseDialogFragment;
+import com.qimai.xinlingshou.dialog.DialogUtils;
 import com.qimai.xinlingshou.dialog.PayOrderBalanceDialogFragment;
 import com.qimai.xinlingshou.dialog.PayOrderMultipleDialogFragment;
+import com.qimai.xinlingshou.fragment.PayTipsDialogFragment;
 import com.qimai.xinlingshou.fragment.right.MessageEvent;
 import com.qimai.xinlingshou.fragment.right.RightFragmentType;
 import com.qimai.xinlingshou.model.PayModel;
 import com.qimai.xinlingshou.utils.APPUtil;
-import com.qimai.xinlingshou.utils.AidlUtil;
 import com.qimai.xinlingshou.utils.DataModel;
 import com.qimai.xinlingshou.utils.DecimalFormatUtils;
-import com.qimai.xinlingshou.utils.ESCUtil;
+import com.qimai.xinlingshou.utils.DeviceUtils;
 import com.qimai.xinlingshou.utils.Hint;
+import com.qimai.xinlingshou.utils.NetWorkUtils;
 import com.qimai.xinlingshou.utils.RandomUntil;
 import com.qimai.xinlingshou.utils.SharePreferenceUtil;
+import com.qimai.xinlingshou.utils.TimeUtils;
 import com.qimai.xinlingshou.utils.ToastUtils;
 import com.qimai.xinlingshou.utils.UPacketFactory;
 import com.qimai.xinlingshou.utils.Xutils;
-import com.google.gson.Gson;
-import com.jakewharton.rxbinding2.widget.RxTextView;
-import com.nostra13.universalimageloader.utils.L;
 import com.zyao89.view.zloading.ZLoadingDialog;
 
 import org.greenrobot.eventbus.EventBus;
@@ -82,13 +92,12 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.litepal.LitePal;
 import org.litepal.crud.DataSupport;
-import org.litepal.crud.callback.SaveCallback;
+import org.litepal.tablemanager.typechange.BooleanOrm;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.lang.ref.SoftReference;
 import java.lang.ref.WeakReference;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
@@ -99,17 +108,25 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Timer;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import butterknife.BindView;
+import butterknife.ButterKnife;
 import butterknife.OnClick;
+import butterknife.Unbinder;
 import io.reactivex.Observable;
 import io.reactivex.ObservableSource;
+import io.reactivex.Observer;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.Disposable;
 import io.reactivex.functions.Consumer;
 import io.reactivex.functions.Function;
 import io.reactivex.schedulers.Schedulers;
+import io.reactivex.subjects.Subject;
 import sunmi.ds.DSKernel;
 import sunmi.ds.callback.ICheckFileCallback;
 import sunmi.ds.callback.IConnectionCallback;
@@ -131,9 +148,9 @@ import static com.qimai.xinlingshou.fragment.right.MessageEvent.UPDATEDISCOUNT;
  */
 
 public class Left_crashier_fragment extends BaseFragment
-        implements GoodsSelectAdapter.onItemClick,NetWorkReceiver.NetWorkSucess
-,BlancePayCallBack{
-
+        implements GoodsSelectAdapter.onItemClick, NetWorkReceiver.NetWorkSucess
+        , BlancePayCallBack,PayTipsDialogFragment.OnQueryListener {
+    Gson gson;
 
     public static final int WECHAT_ZFB = 1;
     public static final int CRASH = 2;
@@ -146,16 +163,21 @@ public class Left_crashier_fragment extends BaseFragment
     private static final String TAG = "Left_crashier_fragment";
     @BindView(R.id.rv_select_goods)
     RecyclerView rvSelectedGoods;
-    String isPay="0";
+    String isPay = "0";
     View alphaView;
     String out_trade_no;
     ordersBean mOrderbean;
     ZLoadingDialog dialog = new ZLoadingDialog(getActivity());
-    String payment_id="0";
+    String payment_id = "0";
     String payType;
+    @BindView(R.id.rl_vip)
+    RelativeLayout rlVip;
+    @BindView(R.id.vip_discount)
+    TextView vipDiscount;
+    Unbinder unbinder;
     private DSKernel mDSKernel = null;
-    int payMethod  = 0;
-     String order;
+    int payMethod = 0;
+    String order;
     int number = 1;
     MoneyBean moneyBean = null;
     DiscountBean discountBean = null;
@@ -170,26 +192,184 @@ public class Left_crashier_fragment extends BaseFragment
     boolean isPaySucess;
     PrintInfoBean printInfoBean;
 
+    boolean isComingRecharge = true;
+    RechargePrint rechargePrint;
     //扫码支付对话框
     Dialog payTipsDialog;
-    final Handler handler=new Handler();
-    Runnable runnable=new Runnable() {
+    boolean isRechargePay;
+
+    PayTipsDialogFragment payTipsDialogFragment;
+    final Handler handler = new Handler();
+
+
+    final Handler handlerRecharge = new Handler();
+
+    Runnable runnable = new Runnable() {
         @Override
         public void run() {
+
+            Log.d(TAG, "run: runnable");
             // TODO Auto-generated method stub
             //要做的事情
-            number= number +1;
-            if (number<=15){
-               // ToastUtils.showLongToast("执行："+number);
+            if (number <= 5) {
+                // ToastUtils.showLongToast("执行："+number);
+
                 LoadOrder();
+
+                number = number + 1;
+
                 handler.postDelayed(this, 5000);
-            }else {
+            } else {
+               /* if (payTipsDialog!=null){
+
+                    payTipsDialog.dismiss();
+                }*/
+               //ToastUtils.showShortToast("支付失败，请重新支付!");
+
+                isgoto = true;
                 handler.removeCallbacks(runnable);
 
+                number = 1;
             }
+
 
         }
     };
+
+
+
+
+    Runnable runnableRecharge = new Runnable() {
+        @Override
+        public void run() {
+
+            Log.d(TAG, "run: runnableRecharge");
+            // TODO Auto-generated method stub
+            //要做的事情
+
+            Log.d(TAG, "run: handlerRecharge num= "+number);
+            if (number <= 5) {
+                // ToastUtils.showLongToast("执行："+number);
+                LoadRehargeOrder();
+                number = number + 1;
+                handlerRecharge.postDelayed(this, 5000);
+            } else {
+                Log.d(TAG, "run: handlerRecharge.removeCallbacks");
+                /*if (payTipsDialogFragment!=null){
+
+                    payTipsDialogFragment.getDialog().dismiss();
+                }*/
+                //ToastUtils.showShortToast("支付失败，请留意用户是否支付成功!");
+                handlerRecharge.removeCallbacks(runnableRecharge);
+
+                number = 1;
+            }
+
+
+        }
+    };
+
+    private void LoadRehargeOrder() {
+
+        String url = App.API_URL + "ptfw/cashier/query-order";
+        Map<String, String> stringMap = new HashMap<>();
+        //ToastUtils.showShortToast(""+mOrderbean.getService_orderId());
+        stringMap.put("out_trade_no",rechargeOrderBean.getTrade_no());
+        stringMap.put("pay_type", rechargeOrderBean.getPayType());
+        Xutils.getInstance().post(url, stringMap, new Xutils.XCallBack() {
+            @Override
+            public void onResponse(String str) {
+                try {
+                    JSONObject mjsonObjects = new JSONObject(str);
+                    String result = mjsonObjects.getString("status");
+                    String message = mjsonObjects.getString("message");
+                    if (result.equals("true")) {
+                        JSONObject mjsonObject = mjsonObjects.getJSONObject("data");
+
+                        if (mjsonObject.getString("result_code").equals("01")) {
+                            //支付成功
+
+                            if (payTipsDialogFragment!=null
+                                    //&& payTipsDialogFragment.getDialog()!=null
+                                    ){
+
+                                getFragmentManager().beginTransaction()
+                                        .detach(payTipsDialogFragment)
+                                        .commit();
+                                //payTipsDialogFragment.getDialog().dismiss();
+                            }
+
+                            //轮训支付成功取消标志
+                            isRecharge = false;
+
+
+                            //支付成功，轮训结束
+                            rechargeOrderBean.setQuery_order("1");
+                           // rechargeOrderBean.save();
+
+                            //payMethod = 0;
+                           // printOrder("扫码支付", "");
+//                       sendPay();
+                            rechargePrint();
+                            handlerRecharge.removeCallbacks(runnableRecharge);
+                            number = 1;
+
+
+                       /* MessageEvent  messageEvent = new MessageEvent("allDelete");
+                        EventBus.getDefault().post(messageEvent);
+                        ((MainActivity)activity).showRightCrashierLayout();
+                        uploadDateToServe(mOrderbean);*/
+
+                        } else if (mjsonObject.getString("result_code").equals("02")) {
+                            //支付失败
+                            //Hint.Short(getActivity(), message);
+                            handlerRecharge.removeCallbacks(runnableRecharge);
+                            number = 1;
+
+                            if (payTipsDialogFragment!=null
+                                   // && payTipsDialogFragment.getDialog()!=null
+                                    ){
+
+                               // payTipsDialogFragment.getDialog().dismiss();
+
+                            }
+                            ToastUtils.showShortToast("支付失败，请重新支付!");
+                            //轮训
+                        } else if (mjsonObject.getString("result_code").equals("03")) {
+                            // Hint.Short(getActivity(), message);
+
+                        }
+
+                    } else {
+                        Hint.Short(getActivity(),message);
+                        if (payTipsDialogFragment!=null
+                                ){
+
+                            getFragmentManager().beginTransaction()
+                                    .detach(payTipsDialogFragment)
+                                    .commit();
+                        }
+                        handlerRecharge.removeCallbacks(runnableRecharge);
+                        number = 1;
+
+                    }
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+
+            }
+
+            @Override
+            protected Object clone() throws CloneNotSupportedException {
+
+                return super.clone();
+
+            }
+        });
+
+
+    }
+
 
     //559000
     //上一次的旧数据
@@ -209,7 +389,7 @@ public class Left_crashier_fragment extends BaseFragment
     Map<String, goodsBean> selectedGoodsMap;
 
     //挂单id对应所选商品
-    Map<Integer,  Map<String, goodsBean>>pendOrderMap;
+    Map<Integer, Map<String, goodsBean>> pendOrderMap;
     //会员优惠信息
     ordersBean selectedOrderMap;
     //对应挂单次数
@@ -247,6 +427,7 @@ public class Left_crashier_fragment extends BaseFragment
     double youhuiMoney = 0.00;
     goodsBean goodsBean;
 
+    boolean isgoto =true;
     private String oldType;
     private String oldAddInfo;
     JSONObject storeinfo;
@@ -255,6 +436,10 @@ public class Left_crashier_fragment extends BaseFragment
     //这个userId只有扫码支付的时候才有值，在退出登录时候清空
     String user_id;
     BalancePayBean balancePayBean;
+    boolean isRecharge = false;
+
+    RechargeOrderBean rechargeOrderBean;
+    String recharge_id;
     double testMoney = 12;
     public static final boolean isMain = Build.MODEL.equals("t1host") || Build.MODEL.equals("T1-G");
     private final String imgKey = "MAINSCREENIMG";
@@ -270,7 +455,9 @@ public class Left_crashier_fragment extends BaseFragment
     private List<String> prices = new ArrayList<>();
     NetWorkReceiver netWorkReceiver;
 
+    boolean isCanBalancePay;
 
+    Dialog progressDialog;
     ExecutorService executorService;
     private IConnectionCallback mIConnectionCallback = new IConnectionCallback() {
         @Override
@@ -295,10 +482,18 @@ public class Left_crashier_fragment extends BaseFragment
                         @Override
                         public void run() {
                             Intent intent1 = null;
+
+
+                           /* DisplayManager displayManager = (DisplayManager) getActivity().getSystemService(Context.DISPLAY_SERVICE);
+
+
+                            Log.d(TAG, "run: displayManager size= " + displayManager
+                                    .getDisplays().length);*/
                             if (!isMain) {
                                 intent1 = new Intent(getActivity(), ViceActivity.class);
+                                startActivity(intent1);
+
                             }
-//                            startActivity(intent1);
                         }
                     }, 2000);
                     break;
@@ -316,18 +511,18 @@ public class Left_crashier_fragment extends BaseFragment
     public void netConnect() {
 
 
-        updateOldOrder();
+       // updateOldOrder();
 
     }
 
     //余额支付成功回掉
     @Override
-    public void onPaySucess(int type,BalancePayBean balancePayBean1) {
+    public void onPaySucess(int type, BalancePayBean balancePayBean1) {
 
-       //setCancelAndClooectionEnable(true);
+        //setCancelAndClooectionEnable(true);
 
         //混合支付
-        if (type==BaseDialogFragment.BALANCE_MULTIP_PAY){
+        if (type == BaseDialogFragment.BALANCE_MULTIP_PAY) {
 
             //((MainActivity)activity).showRightCrashierLayout();
 
@@ -338,23 +533,24 @@ public class Left_crashier_fragment extends BaseFragment
 
 
             //单余额支付
-        }else if (type==BaseDialogFragment.BALANCE_PAY){
+        } else if (type == BaseDialogFragment.BALANCE_PAY) {
 
 
-            ((MainActivity)activity).showPaySucessLayout();
+            ((MainActivity) activity).showPaySucessLayout();
 
-            Log.d(TAG, "onPaySucess: orderBean= "+mOrderbean.toString());
+            Log.d(TAG, "onPaySucess: orderBean= " + mOrderbean.toString());
 
 
-            if (payModel==null){
+            if (payModel == null) {
 
                 payModel = new PayModel();
 
             }
             //支付完成同步订单完成状态
 
-            payModel.asyncBalanceOrder(mOrderbean.getOrder(), "", ""
-                    , new NetWorkCallBack() {
+            /*payModel.asyncBalanceOrder(mOrderbean.getOrder(), "", ""
+                    ,mOrderbean.getPay_time(),mOrderbean.getFinish_time(),
+            new NetWorkCallBack() {
                         @Override
                         public void onSucess(Object data) {
 
@@ -368,32 +564,40 @@ public class Left_crashier_fragment extends BaseFragment
                         }
                     }
             );
-
-            Log.d(TAG, "onPaySucess: balancePayBean1= "+balancePayBean1.toString());
+*/
+            Log.d(TAG, "onPaySucess: balancePayBean1= " + balancePayBean1.toString());
             NotificationPaySucessFragment(balancePayBean1);
+
             balancePay();
 
         }
 
     }
 
-    /** 混合支付后 剩余部分需要支付的弹窗
+    /**
+     * 混合支付后 剩余部分需要支付的弹窗
+     *
      * @param balancePayBean
      */
     private void showMultiPayNextDialog(final BalancePayBean balancePayBean) {
 
-        final Dialog dialog = new Dialog(getActivity(),R.style.CustomDialog);
+        final Dialog dialog = new Dialog(getActivity(), R.style.CustomDialog);
 
-     View view = LayoutInflater.from(getActivity()).inflate(R.layout.dialog_multiplte_next_pay,null);
-
-
-     dialog.setContentView(view);
-
-        TextView  textView = (TextView) view.findViewById(R.id.tv_leave_money);
+        View view = LayoutInflater.from(getActivity()).inflate(R.layout.dialog_multiplte_next_pay, null);
 
 
-        Log.d(TAG, "showMultiPayNextDialog: = "+balancePayBean.getOrderLeaveMoney());
-        textView.setText(balancePayBean.getOrderLeaveMoney()+"元");
+        dialog.setContentView(view);
+
+        dialog.setCancelable(false);
+        dialog.setCanceledOnTouchOutside(false);
+        TextView textView = (TextView) view.findViewById(R.id.tv_leave_money);
+
+
+        Log.d(TAG, "showMultiPayNextDialog: = " + balancePayBean.getOrderLeaveMoney());
+        textView.setText(
+                DecimalFormatUtils.doubleToMoneyWithOutSymbol(Double
+                        .parseDouble(balancePayBean.getOrderLeaveMoney()))
+                        + "元");
         view.findViewById(R.id.tv_next)
                 .setOnClickListener(new View.OnClickListener() {
                     @Override
@@ -412,12 +616,12 @@ public class Left_crashier_fragment extends BaseFragment
 
     /**
      * 向支付成功界面发送信息
-     * */
+     */
     private void NotificationPaySucessFragment(BalancePayBean balancePayBean) {
 
         MessageEvent messageEvent = new MessageEvent(MessageEvent.BLANCE_PAY);
         Bundle bundle = new Bundle();
-        bundle.putParcelable(MessageEvent.BLANCE_PAY,balancePayBean);
+        bundle.putParcelable(MessageEvent.BLANCE_PAY, balancePayBean);
         messageEvent.setBundle(bundle);
 
         EventBus.getDefault().post(messageEvent);
@@ -429,7 +633,7 @@ public class Left_crashier_fragment extends BaseFragment
      * */
     private void balancePay() {
 
-        printOrder("标记支付","");
+        printOrder("余额支付", "");
 
     }
 
@@ -437,6 +641,19 @@ public class Left_crashier_fragment extends BaseFragment
     public void onPayCancel() {
 
         setCancelAndClooectionEnable(true);
+
+
+       /* String amount = tvTotalMoney.getText().toString();
+        if (!TextUtils.isEmpty(amount)&&amount.contains("￥")){
+
+            amount = amount.replace("￥ ","");
+        }
+
+        mOrderbean.setAmount(amount);*/
+        NotificationCrashFragment(mOrderbean.getAmount());
+
+        setCancelAndClooectionEnable(false);
+        ((MainActivity) getActivity()).showPayFragment();
 
     }
 
@@ -446,6 +663,54 @@ public class Left_crashier_fragment extends BaseFragment
 
         ToastUtils.showShortToast(msg);
 
+    }
+
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        // TODO: inflate a fragment view
+        View rootView = super.onCreateView(inflater, container, savedInstanceState);
+        unbinder = ButterKnife.bind(this, rootView);
+        return rootView;
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        unbinder.unbind();
+    }
+
+    @Override
+    public void onQueryPaySucess(int type) {
+
+        Log.d(TAG, "onQueryPaySucess: type= "+type);
+        switch (type){
+
+
+            case PayTipsDialogFragment.WECHAT_ZHIFUBAO:
+
+                printOrder("扫码支付","");
+
+                break;
+
+            case PayTipsDialogFragment.RECHARGE:
+
+                rechargePrint();
+
+
+                break;
+        }
+
+    }
+
+    @Override
+    public void onDialogDisimiss() {
+
+        if (isRecharge){
+
+            isComingRecharge = true;
+        } else {
+            isgoto = true;
+        }
     }
 
     private static class MyHandler extends Handler {
@@ -479,7 +744,7 @@ public class Left_crashier_fragment extends BaseFragment
         @Override
         public void onReceiveFile(DSFile file) {
 
-            Log.d(TAG, "onReceiveFile: file= "+file.path);
+            Log.d(TAG, "onReceiveFile: file= " + file.path);
         }
 
         @Override
@@ -517,6 +782,7 @@ public class Left_crashier_fragment extends BaseFragment
     @Override
     protected void initData() {
 
+        gson = new Gson();
         printInfoBean = new PrintInfoBean();
 
         executorService = Executors.newCachedThreadPool();
@@ -524,21 +790,22 @@ public class Left_crashier_fragment extends BaseFragment
         netWorkReceiver = new NetWorkReceiver();
 
 
-        //展示对话框
+        //首次先同步一下历史订单
+       // updateOldOrder();
 
 
+        //设置个倒计时，每隔30分钟上传一次数据
 
-        //设置个倒计时，每隔1小时上传一次数据
-
-        Observable.interval(10, TimeUnit.HOURS)
+        Observable.interval(30,TimeUnit.MINUTES)
                 .observeOn(Schedulers.io())
                 .subscribeOn(Schedulers.io())
+                //错误后在重新设置三十分钟后同步
                 .onErrorResumeNext(new Function<Throwable, ObservableSource<? extends Long>>() {
                     @Override
                     public ObservableSource<? extends Long> apply(Throwable throwable) throws Exception {
 
-                        Log.d(TAG, "apply: throwable= "+throwable.getMessage());
-                        return Observable.interval(10, TimeUnit.SECONDS);
+                        Log.d(TAG, "apply: throwable= " + throwable.getMessage());
+                        return Observable.interval(30,TimeUnit.MINUTES);
                     }
                 })
                 .subscribe(new Consumer<Long>() {
@@ -546,18 +813,16 @@ public class Left_crashier_fragment extends BaseFragment
                     public void accept(Long aLong) throws Exception {
 
 
-                        Log.d(TAG, "accept: aLong= "+aLong);
+                        Log.d(TAG, "accept: aLong= " + aLong);
+
                         updateOldOrder();
                     }
                 });
 
 
-
-
-
         //首次先同步数据库中未上传订单
 
-        updateOldOrder();
+       // updateOldOrder();
 
 
         //List<ordersBean> orderIteminfoList = LitePal.findAll(ordersBean.class);
@@ -567,8 +832,6 @@ public class Left_crashier_fragment extends BaseFragment
             +" "+orderIteminfoList.get(i).getService_orderId());
 
         }*/
-
-
 
 
         initSdk();
@@ -582,7 +845,7 @@ public class Left_crashier_fragment extends BaseFragment
         goodsSelectAdapter.setOnItemClick(this);
         linearLayoutManager = new LinearLayoutManager(activity);
         rvSelectedGoods.setLayoutManager(linearLayoutManager);
-        rvSelectedGoods.addItemDecoration(new DividerItemDecoration(activity,DividerItemDecoration.VERTICAL));
+        rvSelectedGoods.addItemDecoration(new DividerItemDecoration(activity, DividerItemDecoration.VERTICAL));
         rvSelectedGoods.setAdapter(goodsSelectAdapter);
 
         imgs.add(Environment.getExternalStorageDirectory().getPath() + "/f_shoukuan.png");
@@ -602,28 +865,25 @@ public class Left_crashier_fragment extends BaseFragment
 //        imgs.add(Environment.getExternalStorageDirectory().getPath() + "/img_02.png");
 
 
-
-
-
     }
 
     private void updateOldOrder() {
 
-    ArrayList<ordersBean> ordersBeanArrayList = (ArrayList<ordersBean>) LitePal.where("isauto=? and server_order_no not null","0").find(ordersBean.class);
+        ArrayList<ordersBean> ordersBeanArrayList = (ArrayList<ordersBean>) LitePal.where("isauto=0 and ispay=1").find(ordersBean.class);
 
 
-    if (ordersBeanArrayList!=null&&ordersBeanArrayList.size()>0){
+        Log.d(TAG, "updateOldOrder: ordersBeanArrayList= "+ordersBeanArrayList.size());
 
-        for (ordersBean o:
-             ordersBeanArrayList) {
-            uploadDateToServe(o);
 
+        if (ordersBeanArrayList != null && ordersBeanArrayList.size() > 0) {
+
+            for (ordersBean o :
+                    ordersBeanArrayList) {
+
+                uploadDateToServe(o);
+               // UploadUtils.uploadOldOrder();
+            }
         }
-
-    }
-
-
-
 
     }
 
@@ -632,14 +892,11 @@ public class Left_crashier_fragment extends BaseFragment
     protected void initView(View rootView) {
 
 
-
-
-
+        createProgressDialog();
 
         EventBus.getDefault().register(this);
         alphaView = LayoutInflater.from(activity)
                 .inflate(R.layout.alpha_background_view, null);
-
 
         initEvent();
 
@@ -653,16 +910,16 @@ public class Left_crashier_fragment extends BaseFragment
                     @Override
                     public void accept(CharSequence charSequence) throws Exception {
 
-                        Log.d(TAG, "accept: charSequence= "+charSequence.toString());
+                        Log.d(TAG, "accept: charSequence= " + charSequence.toString());
 
                         MessageEvent messageEvent = new MessageEvent(MessageEvent.TOTALMONEY);
 
 
-                        if (!isPaySucess&&!charSequence.toString().contains("0.00")){
+                        if (!isPaySucess && !charSequence.toString().contains("0.00")) {
 
                             sendOrderListToSecondScreen(SecondScreenInfo.UPDATE);
                         }
-                        if (charSequence.toString().contains("0.00")){
+                        if (charSequence.toString().contains("0.00")) {
 
                             messageEvent.setStringValues(charSequence.toString());
                             EventBus.getDefault().post(messageEvent);
@@ -676,18 +933,17 @@ public class Left_crashier_fragment extends BaseFragment
             @Override
             public void accept(CharSequence charSequence) throws Exception {
 
-                Log.d(TAG, "accept: charSequence22= "+charSequence.toString());
+                Log.d(TAG, "accept: charSequence22= " + charSequence.toString());
 
                 MessageEvent messageEvent = new MessageEvent(MessageEvent.TOTALDISCOUNT);
 
 
-
-                if (!isPaySucess&&!charSequence.toString().contains("0.00")){
+                if (!isPaySucess && !charSequence.toString().contains("0.00")) {
 
                     sendOrderListToSecondScreen(SecondScreenInfo.UPDATE);
                 }
 
-                if (!charSequence.toString().contains("0.00")){
+                if (!charSequence.toString().contains("0.00")) {
 
                     messageEvent.setStringValues(charSequence.toString());
                     EventBus.getDefault().post(messageEvent);
@@ -715,35 +971,45 @@ public class Left_crashier_fragment extends BaseFragment
                 //点击收款时候副屏应该显示 请出示支付宝/微信二维码....
 
                 sendOrderListToSecondScreen(SecondScreenInfo.BEGINPAY);
-   //13516492591
+                //13516492591
                 //收款时 整单取消和收款不能点击
                 setCancelAndClooectionEnable(false);
 
+                //通知PayFragment界面支持左右滑动
+                MessageEvent messageEventScroll = new
+                        MessageEvent(MessageEvent.PAY_CAN_SCROLL);
+                EventBus.getDefault().post(messageEventScroll);
+
+
+                //提示现金支付界面 更新金额
                 MessageEvent messageEvent = new MessageEvent("crashPay");
 
                 String totalMoney1 = tvTotalMoney.getText().toString();
 
-                if (totalMoney1.contains("¥")){
-                    Log.d(TAG, "onViewClicked1111: before totalMoney1= "+totalMoney1);
+                if (totalMoney1.contains("￥")) {
+                    Log.d(TAG, "onViewClicked1111: before totalMoney1= " + totalMoney1);
 
-                    totalMoney1 = totalMoney1.replace("¥ ","");
+                    totalMoney1 = totalMoney1.replace("￥ ", "");
 
 
-                    Log.d(TAG, "onViewClicked11111: after totalMoney1= "+totalMoney1);
+                    Log.d(TAG, "onViewClicked11111: after totalMoney1= " + totalMoney1);
                 }
 
 
                 //如果有用户id 就先判断是否余额支付
 
-                Log.d(TAG, "onViewClicked1: user_id= "+user_id);
-                if (!TextUtils.isEmpty(user_id)){
+                Log.d(TAG, "onViewClicked1: user_id= " + user_id);
+                if (!TextUtils.isEmpty(user_id)) {
 
                     //先进行网络请求判断余额是否存在，如果存在就去余额支付
 
                     //把用户id加上
                     //mOrderbean.setUserid(user_id);
-                    veriftyAccountBalancePay(user_id);
+                    if (isCanBalancePay) {
 
+                        veriftyAccountBalancePay(user_id);
+
+                    }
 
                  /*   if (testMoney>Double.parseDouble(totalMoney1)){
 
@@ -760,7 +1026,7 @@ public class Left_crashier_fragment extends BaseFragment
                         payDialogFragment.show(getChildFragmentManager(),"pay");*/
 
 
-                }else{
+                } else {
 
 
                     //这里就是通知右边现金收款应收多少
@@ -769,14 +1035,12 @@ public class Left_crashier_fragment extends BaseFragment
                     ((MainActivity) getActivity()).showPayFragment();
 
 
-
                 }
 
 
-
-                App.store.put("goods",selectedGoodsMap.toString());
+                App.store.put("goods", selectedGoodsMap.toString());
                 App.store.commit();
-                L.d("BBBBBB",selectedGoodsMap.toString());
+                L.d("BBBBBB", selectedGoodsMap.toString());
 
 
 //                String totalMoney = tvTotalMoney.getText().toString();
@@ -805,7 +1069,7 @@ public class Left_crashier_fragment extends BaseFragment
                 break;
             case R.id.iv_menu:
 
-
+                //Yue_PrintUtils.print_info("","");
 
                 ((MainActivity) activity).openSlideMenu();
 
@@ -878,9 +1142,16 @@ public class Left_crashier_fragment extends BaseFragment
 
     }
 
+    @Override
+    public void onHiddenChanged(boolean hidden) {
+
+        super.onHiddenChanged(hidden);
+
+    }
+
     /**
      * 向CrashFragment发送订单金额
-     * */
+     */
 
     private void NotificationCrashFragment(String money) {
 
@@ -899,47 +1170,54 @@ public class Left_crashier_fragment extends BaseFragment
     private void veriftyAccountBalancePay(final String user_id) {
 
 
-        if (payModel==null){
+        if (payModel == null) {
 
             payModel = new PayModel();
         }
 
+
+        DialogUtils.createDialog(getActivity());
+
+        // progressDialog.show();
         payModel.queryBlance(user_id, new NetWorkCallBack<String>() {
             @Override
             public void onSucess(String balance) {
 
+                DialogUtils.cancelDialog();
+                //progressDialog.cancel();
 
-                Log.d(TAG, "onSucess: balance= "+balance);
-                //获取账单的总金额
+                Log.d(TAG, "onSucess: balance= " + balance);
+                //获取账单的总应付金额
 
                 String totalMoney = tvTotalMoney.getText().toString();
 
 
-                if (totalMoney.equals("0.00")||totalMoney.equals("￥0.00")){
+                if (totalMoney.equals("0.00") || totalMoney.equals("￥0.00")) {
 
                     return;
                 }
-                if (totalMoney.contains("¥")){
-                    Log.d(TAG, "onViewClicked1111: before totalMoney1= "+totalMoney);
+                if (totalMoney.contains("￥")) {
+                    Log.d(TAG, "onViewClicked1111: before totalMoney1= " + totalMoney);
 
-                    totalMoney = totalMoney.replace("¥ ","");
+                    totalMoney = totalMoney.replace("￥ ", "");
 
 
-                    Log.d(TAG, "onViewClicked11111: after totalMoney1= "+totalMoney);
+                    Log.d(TAG, "onViewClicked11111: after totalMoney1= " + totalMoney);
                 }
 
 
                 //如果没有余额/余额为0 还是跳转其他三种支付
                 if (TextUtils.isEmpty(balance)||
-                Double.parseDouble(balance)==0){
+                        Double.parseDouble(balance)==0) {
 
 
                     NotificationCrashFragment(totalMoney);
+
                     ((MainActivity) getActivity()).showPayFragment();
 
 
-                 //进行余额支付
-                }else{
+                    //进行余额支付
+                } else {
 
                     BaseDialogFragment payDialogFragment = null;
                     //判断余额是否满足当前账单金额
@@ -947,67 +1225,96 @@ public class Left_crashier_fragment extends BaseFragment
 
                     //订单总金额
                     Double orderMoney = Double.parseDouble(totalMoney);
-
-
-                     balancePayBean = new BalancePayBean();
-                    balancePayBean.setBalanceTotal(accountBlance+"");
+                    balancePayBean = new BalancePayBean();
+                    balancePayBean.setBalanceTotal(accountBlance + "");
                     //balancePayBean.setBalanceNeedPay();
-                    balancePayBean.setOrderMoney(orderMoney+"");
+                    balancePayBean.setOrderMoney(orderMoney + "");
                     balancePayBean.setUserId(user_id);
 
-                  //  order = RandomUntil.getNumLargeLetter(18);
-                   // order = "P"+order.substring(1,order.length());
+                    //  order = RandomUntil.getNumLargeLetter(18);
+                    // order = "P"+order.substring(1,order.length());
 
 
-                    Log.d(TAG, "onSucess: user_id= "+user_id);
+                    Log.d(TAG, "onSucess: user_id= " + user_id);
 
 
-                    if (accountBlance>orderMoney){
+                    if (accountBlance > orderMoney) {
 
                         //创建ordersBean 保存订单信息
                         saveOrderInfo(BALANCE);
-                       // mOrderbean.setStatus(1);
+                        // mOrderbean.setStatus(1);
 
 
-                        mOrderbean.setUse_wallet(1);
-
-                        mOrderbean.setWallet_amount(orderMoney+"");
-
+                       /* mOrderbean.setUse_wallet(1);
                         mOrderbean.setAmount("0.00");
+                        mOrderbean.setWallet_amount(orderMoney+"");
+                        mOrderbean.setTotalBalance(balance);*/
+
+
+                        balancePayBean.setUse_wallet(1);
+
+
+                        balancePayBean.setWallet_amount(orderMoney + "");
+
+                        balancePayBean.setBalanceTotal(balance);
+                        balancePayBean.setAmount("0.00");
+
+
                         balancePayBean.setOrdersBean(mOrderbean);
                         payDialogFragment = PayOrderBalanceDialogFragment.getInstance(balancePayBean);
                     }
                     //混合支付
-                    else{
+                    else {
 
                         saveOrderInfo(BALANCE);
 
 
-                        mOrderbean.setWallet_amount((accountBlance)+"");
+                        balancePayBean.setWallet_amount((accountBlance) + "");
 
-                        mOrderbean.setAmount((orderMoney-accountBlance)+"");
-                        mOrderbean.setUse_wallet(1);
+                        //mOrderbean.setWallet_amount((accountBlance)+"");
+
+
+                        //mOrderbean.setTotalBalance(balance);
+
+                        balancePayBean.setAmount(DecimalFormatUtils
+                                .stringToMoneyWithOutSymbol((orderMoney - accountBlance) + ""));
+                        // mOrderbean.setAmount((orderMoney-accountBlance)+"");
+
+                        balancePayBean.setUse_wallet(1);
+
+                        //mOrderbean.setUse_wallet(1);
+
+                        balancePayBean.setStatus(1);
+
+                        // mOrderbean.setStatus(1);
+
+                        balancePayBean.setOrderLeaveMoney(orderMoney - accountBlance + "");
+
+                        //mOrderbean.setLeaveBalance(orderMoney-accountBlance+"");
+
                         balancePayBean.setOrdersBean(mOrderbean);
 
-                        balancePayBean.setOrderLeaveMoney(orderMoney-accountBlance+"");
+
                         payDialogFragment = PayOrderMultipleDialogFragment.getInstance(balancePayBean);
 
 
                     }
                     payDialogFragment.setBlancePayCallBack(Left_crashier_fragment.this);
 
-                    payDialogFragment.show(getChildFragmentManager(),"pay");
-
+                    payDialogFragment.show(getChildFragmentManager(), "pay");
 
 
                 }
-
 
 
             }
 
             @Override
             public void onFailed(String msg) {
+
+                DialogUtils.cancelDialog();
+
+                // progressDialog.dismiss();
 
                 ToastUtils.showShortToast(msg);
             }
@@ -1016,13 +1323,21 @@ public class Left_crashier_fragment extends BaseFragment
 
     }
 
+    private void createProgressDialog() {
+        progressDialog = new Dialog(getActivity(), R.style.CustomDialog);
+
+        progressDialog.setContentView(R.layout.progress_bar);
+        progressDialog.getWindow().setBackgroundDrawable(null);
+    }
+
+
 
     public void LoadOrder() {
-        String url = App.API_URL+"reta/cashier/query-order";
-        Map<String,String> stringMap = new HashMap<>();
+        String url = App.API_URL + "ptfw/cashier/query-order";
+        Map<String, String> stringMap = new HashMap<>();
         //ToastUtils.showShortToast(""+mOrderbean.getService_orderId());
         stringMap.put("out_trade_no", mOrderbean.getService_orderId());
-        stringMap.put("pay_type",   payment_id);
+        stringMap.put("pay_type", payType);
         Xutils.getInstance().post(url, stringMap, new Xutils.XCallBack() {
             @Override
             public void onResponse(String str) {
@@ -1033,32 +1348,79 @@ public class Left_crashier_fragment extends BaseFragment
                     if (result.equals("true")) {
                         JSONObject mjsonObject = mjsonObjects.getJSONObject("data");
 
-                    if (mjsonObject.getString("result_code").equals("01")){
-                        //支付成功
+                        if (mjsonObject.getString("result_code").equals("01")) {
+                            //支付成功
 
-                        payMethod = 0;
-                        printOrder("扫码支付","");
+                            if (payTipsDialogFragment!=null){
+
+                              // payTipsDialogFragment.getDialog().dismiss();
+                                getFragmentManager().beginTransaction()
+                                        .detach(payTipsDialogFragment)
+                                        .commit();
+
+                                Log.d(TAG, "onResponse: payTipsDialogFragment==null"+
+                                        (payTipsDialogFragment==null));
+
+                            }
+
+                            //支付成功，轮训结束
+                            mOrderbean.setQuery_order("1");
+                            mOrderbean.save();
+
+                            //payMethod = 0;
+                            printOrder("扫码支付", "");
 //                       sendPay();
-                        handler.removeCallbacks(runnable);
+                            handler.removeCallbacks(runnable);
+                            number = 1;
+
 
                        /* MessageEvent  messageEvent = new MessageEvent("allDelete");
                         EventBus.getDefault().post(messageEvent);
                         ((MainActivity)activity).showRightCrashierLayout();
                         uploadDateToServe(mOrderbean);*/
 
-                    }else  if (mjsonObject.getString("result_code").equals("02")){
-                        //支付失败
-                        Hint.Short(getActivity(), message);
-                        handler.removeCallbacks(runnable);
-                        //轮训
-                    }else  if (mjsonObject.getString("result_code").equals("03")){
-                        Hint.Short(getActivity(), message);
+                        } else if (mjsonObject.getString("result_code").equals("02")) {
+                            //支付失败
+                            //Hint.Short(getActivity(), message);
+                            handler.removeCallbacks(runnable);
+                            number = 1;
 
-                    }
+                            if (payTipsDialogFragment!=null){
+
+                               // payTipsDialogFragment.getDialog().dismiss();
+
+                                getFragmentManager().beginTransaction()
+                                        .detach(payTipsDialogFragment)
+                                        .commit();
+                            }
+
+                           /* if (payTipsDialog!=null){
+
+                                payTipsDialog.dismiss();
+                            }*/
+                            ToastUtils.showShortToast("支付失败，请重新支付!");
+                            //轮训
+                        } else if (mjsonObject.getString("result_code").equals("03")) {
+                           // Hint.Short(getActivity(), message);
+
+                        }
 
                     } else {
                         Hint.Short(getActivity(), message);
+
+                        if (payTipsDialogFragment!=null){
+
+                          //  payTipsDialogFragment.getDialog().dismiss();
+
+                            getFragmentManager().beginTransaction()
+                                    .detach(payTipsDialogFragment)
+                                    .commit();
+
+
+                        }
                         handler.removeCallbacks(runnable);
+                        number = 1;
+
                     }
                 } catch (JSONException e) {
                     e.printStackTrace();
@@ -1072,356 +1434,293 @@ public class Left_crashier_fragment extends BaseFragment
             }
         });
     }
-    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+
     public void sendPay(String auth_code) {
 
-        if (payTipsDialog==null) {
 
-            payTipsDialog = new Dialog(getActivity(),R.style.CustomDialog);
-            payTipsDialog.setContentView(R.layout.layout_waiting_scan_pay);
+
+        isRechargePay = false;
+
+
+        //无网络提
+        if(!NetWorkUtils.isNetWorkAvaiable(getActivity())){
+
+            ToastUtils.showShortToast("当前网络不可用！");
+            isgoto = true;
+            return;
+
+        }else{
+
+//            if (payTipsDialog!=null){
+//                payTipsDialog.dismiss();
+//            }
+
+            /*payTipsDialog = new Dialog(getActivity(),R.style.CustomDialog);
+            payTipsDialog.setCanceledOnTouchOutside(false);
+            payTipsDialog.setCancelable(false);
+            payTipsDialog.setContentView(R.layout.layout_waiting_scan_pay);*/
+
+            //创建DialogFragment
+           /* payTipsDialogFragment =  PayTipsDialogFragment.getInstance("","");
+            payTipsDialogFragment.show(getFragmentManager(),"payTips");
+            payTipsDialogFragment.setOnQueryListener(this);*/
+            //payTipsDialog.show();
 
         }
 
-        payTipsDialog.show();
-
-
-       // order = RandomUntil.getNumLargeLetter(18);
+        // order = RandomUntil.getNumLargeLetter(18);
 
         //保存订单到本地 这是是未支付的也要先保存，支付完成后在更新状态
 
-        if (balancePayBean==null){
+        if (balancePayBean == null) {
 
             saveOrderInfo(WECHAT_ZFB);
 
         }
-try {
-    //order = RandomUntil.getNumLargeLetter(18);
-    //App.store.put("order 11", order);
-  //  App.store.commit();
-   // ToastUtils.showShortToast("订单"+order);
-    String url = App.API_URL + "reta/cashier/do-pay";
+        try {
+            //order = RandomUntil.getNumLargeLetter(18);
+            //App.store.put("order 11", order);
+            //  App.store.commit();
+            // ToastUtils.showShortToast("订单"+order);
+            String url = App.API_URL + "ptfw/cashier/do-pay";
 
-    Map<String, String> stringMap = new HashMap<>();
-    stringMap.put("order_no", order);
-    stringMap.put("amount", "0.01");
-    //stringMap.put("amount", mOrderbean.getAmount());
+            Map<String, String> stringMap = new HashMap<>();
+            stringMap.put("order_no", order);
+            //stringMap.put("amount", "0.01");
+            stringMap.put("amount", mOrderbean.getAmount());
+            //设备id
+            stringMap.put("terminal_no", DeviceUtils.getDeviceSN());
 
-    Log.d(TAG, "sendPay: mOrderbean= "+mOrderbean.toString());
+            Log.d(TAG, "sendPay: mOrderbean= " + mOrderbean.toString());
 //        stringMap.put("amount", tvTotalMoney.getText().toString());
 
-    if (auth_code.substring(0, 2).contains("10") || auth_code.substring(0, 2).contains("11") || auth_code.substring(0, 2).contains("12") || auth_code.substring(0, 2).contains("13") || auth_code.substring(0, 2).contains("14") || auth_code.substring(0, 2).contains("15")) {
-        payment_id = "1";
-        payType = "010";
-    } else if (auth_code.substring(0, 2).contains("28")) {
-        payment_id = "2";
-        payType = "020";
+            if (auth_code.substring(0, 2).contains("10") || auth_code.substring(0, 2).contains("11") || auth_code.substring(0, 2).contains("12") || auth_code.substring(0, 2).contains("13") || auth_code.substring(0, 2).contains("14") || auth_code.substring(0, 2).contains("15")) {
+                payment_id = "1";
+                payType = "010";
 
-    }
+            } else if (auth_code.substring(0, 2).contains("28")) {
+                payment_id = "2";
+                payType = "020";
 
-    mOrderbean.setPayment_id(payment_id);
-    mOrderbean.saveAsync();
-    stringMap.put("pay_type", payType);
-    stringMap.put("auth_code", auth_code);
-    /**
-     * *****************************本地数据库存储******************************
-     */
-   /* mOrderbean = new ordersBean();
-    if (discountBean!=null){
-        mOrderbean.setUserid(discountBean.getUser_id());
+            }
 
-    }else{
-        mOrderbean.setUserid("");
+            //这里在设置一次，主要给混合支付用的
+            mOrderbean.setPayment_id(payment_id);
 
-    }
-    mOrderbean.setTotal_amount(totalMoney + "");
-    mOrderbean.setAmount(tvTotalMoney.getText().toString());
-    mOrderbean.setUser_remarks("");
-    mOrderbean.setSeller_remarks("");
-    mOrderbean.setOrder(order);
-    mOrderbean.setPayment_id(payment_id);
+            mOrderbean.setPayType(payType);
 
-    mOrderbean.setMinus_amount(tvTotalDiscount.getText().toString());//优惠总金额
-    if (moneyBean!=null) {
-        mOrderbean.setCard_minus(moneyBean.getVipDiscount() + "");//会员卡优惠
-        mOrderbean.setCoupon_minus(moneyBean.getMianzhiOrZhrkouDiscount() + "");//优惠券优惠
+            //发起支付请求前的入库 如果失败，则提醒用户重新支付
+            if(!mOrderbean.save()){
 
-    }else{
-        mOrderbean.setCard_minus("");//会员卡优惠
-        mOrderbean.setCoupon_minus("");//优惠券优惠
+                ToastUtils.showShortToast("保存失败，请重新支付");
 
+                return;
+            }
 
-    }
-    mOrderbean.setCard_id("");
-    mOrderbean.setCoupon_id("");
-    mOrderbean.setIspay("0");
-    mOrderbean.setIsauto("0");
+            stringMap.put("pay_type", payType);
+            stringMap.put("auth_code", auth_code);
 
-    List<orderIteminfo> orderIteminfoList = new ArrayList<>();
+            //1
 
+            Xutils.getInstance().post(url, stringMap, new Xutils.XCallBack() {
+                @Override
+                public void onResponse(String str) {
+                    try {
+                        Log.d(TAG, "onResponse: str= " + str);
 
-    for (Map.Entry<String, goodsBean> entry : selectedGoodsMap.entrySet()) {
-        String namse = entry.getValue().getGoodsName();
-        orderIteminfo items = new orderIteminfo();
-        items.setData_id(entry.getValue().getGoodsId());//商品id
-        items.setEntity_id(entry.getValue().getGoodsId());//实体id
-        items.setProduct_no(entry.getValue().getProduct_no());//条形码
-        items.setName(entry.getValue().getGoodsName());//
-        items.setImage(entry.getValue().getGoodsimg());//
-        items.setPrice(entry.getValue().getPrice() + "");//价格
-        items.setQty(entry.getValue().getNumber() + "");//数量
-        items.setSpec(entry.getValue().getUnit());//规格
-        items.setMinus("");//优惠金额
-        items.setMessages(""); //描述
-        //    items.save();
-        orderIteminfoList.add(items);//
+                        isgoto = true;
+                        JSONObject mjsonObjects = new JSONObject(str);
+                        String result = mjsonObjects.getString("status");
+                        String message = mjsonObjects.getString("message");
+                        if (result.equals("true")) {
 
+                            JSONObject jsonObject = mjsonObjects.getJSONObject("data");
 
-    }
+                            out_trade_no = jsonObject.getString("out_trade_no");
 
-    Gson gson = new Gson();
+                            mOrderbean.setTrade_no(out_trade_no);
+                           //支付时间
+                            mOrderbean.setPay_time(TimeUtils.getCurrentPhpTimeStamp());
 
-    String str = gson.toJson(orderIteminfoList);
+                            mOrderbean.save();
+                            payTipsDialogFragment = PayTipsDialogFragment.getInstance(PayTipsDialogFragment.WECHAT_ZHIFUBAO,out_trade_no,payType);
+                            payTipsDialogFragment.show(getFragmentManager(),"payTips");
+                            payTipsDialogFragment.setOnQueryListener(Left_crashier_fragment.this);
 
-    mOrderbean.setOrderInfo(str);*/
-    // mOrderbean.setOrderIteminfoList(orderIteminfoList);
+                            if (mjsonObjects.getJSONObject("data").getString("result_code").equals("01")) {
 
+                               // Thread.sleep(1000);
 
-    /*******************************************************************************/
-//    Xutils.getInstance().post(url, stringMap, new Xutils.XCallBackWithError() {
-//        @Override
-//        public void onError(Throwable throwable) {
-//
-//            App.store.put("neterror",throwable.getMessage());
-//            App.store.commit();
-//        }
-//
-//        @Override
-//        public void onResponse(String result) {
-//
-//            App.store.put("netsucess",result);
-//            App.store.commit();
-//
-//        }
-//    });
+                                //因为这里DialogFragment还没有显示，所以把他从FragmentManager中移出
+                                if (payTipsDialogFragment!=null){
+                                    getFragmentManager().beginTransaction()
+                                            .detach(payTipsDialogFragment)
+                                    .commit();
+
+                                    Log.d(TAG, "onResponse: payTipsDialogFragment==null"+
+                                            (payTipsDialogFragment==null));
+                                   /* if (fragment!=null){
+
+                                        getFragmentManager().beginTransaction()
+                                                .detach(payTipsDialogFragment);
+                                       // getFragmentManager().popBackStack();
+
+                                       // fragment.onDestroy();
+                                        //fragment.onDetach();
+                                    }*/
+                                   // payTipsDialogFragment.getDialog().dismiss();
+
+                                }
+
+                                //第三方支付成功，去掉对话框
+                                /*if (payTipsDialogFragment!=null){
+
+                                    payTipsDialogFragment.getDialog().dismiss();
+                                }*/
+                                 // payTipsDialog.dismiss();
+
+                                printOrder("扫码支付", "");
+
+                                isgoto = true;
+
+                            } else if (mjsonObjects.getJSONObject("data").getString("result_code").equals("02")) {
 
 
+                                    if (payTipsDialogFragment!=null){
 
-    //1
-
-    Xutils.getInstance().post(url, stringMap, new Xutils.XCallBack() {
-        @Override
-        public void onResponse(String str) {
-            try {
-                Log.d(TAG, "onResponse: str= " + str);
-
-               // ToastUtils.showShortToast(str);
-                App.store.put("test123", str);
-                App.store.commit();
-                dialog.dismiss();
-                JSONObject mjsonObjects = new JSONObject(str);
-                String result = mjsonObjects.getString("status");
-                String message = mjsonObjects.getString("message");
-                if (result.equals("true")) {
-
-                    mOrderbean.saveAsync().listen(new SaveCallback() {
-                        @Override
-                        public void onFinish(final boolean status) {
-
-                            rvSelectedGoods.post(new Runnable() {
-                                @Override
-                                public void run() {
-
-
-                                    if (status) {
-
-                                        //  ToastUtils.showShortToast("sucess");
-
-
-                                    } else {
-
-                                        // ToastUtils.showShortToast("failed");
+                                        getFragmentManager().beginTransaction()
+                                                .detach(payTipsDialogFragment)
+                                                .commit();
                                     }
 
 
-                                }
-                            });
-                        }
-                    });
+                               /* if(payTipsDialog!=null){
 
+                                  //  payTipsDialog.dismiss();
+                                }*/
+                                ToastUtils.showShortToast("支付失败，请重新支付!");
+                                isgoto = true;
 
-                    JSONObject jsonObject = mjsonObjects.getJSONObject("data");
+                                //  Hint.Short(getActivity(), mjsonObjects.getJSONObject("data").getString("return_msg"));
+                            } else if (mjsonObjects.getJSONObject("data").getString("result_code").equals("03")) {
 
-                    out_trade_no = jsonObject.getString("out_trade_no");
+                              //  ToastUtils.showShortToast("onResponse: 开始轮训");
+                                Log.d(TAG, "onResponse: 开始轮训");
 
-                    // ToastUtils.showShortToast(out_trade_no);
+                                payTipsDialogFragment.setTradeInfo(out_trade_no,payType);
 
-                    mOrderbean.setService_orderId(out_trade_no);
-                    mOrderbean.save();
+                                mOrderbean.setQuery_order("0");
 
-                    if (mjsonObjects.getJSONObject("data").getString("result_code").equals("01")) {
+                                mOrderbean.save();
 
+                                //    ToastUtils.showShortToast("03");
 
-
-                        //第三方支付成功，去掉对话框
-
-                        payTipsDialog.dismiss();
-
-                        printOrder("扫码支付","");
-
-
-                          /*  mOrderbean.setIspay("1");
-                            mOrderbean.save();
-
-                            //String out_trade_no = mjsonObjects.getString("out_trade_no");
-                            String store = App.store.getString("storeinfo");
-                            JSONObject storeinfo = new JSONObject(store);
-                            AidlUtil.getInstance().printText(
-                                    storeinfo.getString("name"), 2, 50, true,
-                                    false, ESCUtil.alignCenter());
-                            Date date = new Date();
-                            SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
-                            AidlUtil.getInstance().printText("销售订单:" + order, 2, 35, false,
-                                    false, ESCUtil.alignLeft());
-                            AidlUtil.getInstance().printText("交易时间:" + format.format(date), 1, 35, false,
-                                    false, ESCUtil.alignLeft());
-                            AidlUtil.getInstance().printText("_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _", 2, 25, false, false,
-                                    null);
-                            AidlUtil.getInstance().printLine(1);
-                            for (Map.Entry<String, goodsBean> entry : selectedGoodsMap.entrySet()) {
-                                String namse = entry.getValue().getGoodsName();
-                                System.out.println(entry.getKey() + ": " + entry.getValue() + namse);
-                                AidlUtil.getInstance().printText(
-                                        entry.getValue().getGoodsName() + "    x" + entry.getValue().getNumber(), 0, 35, false,
-                                        false, ESCUtil.alignLeft());
-                                AidlUtil.getInstance().printText("    ¥" + entry.getValue().getPrice(), 2, 35, false,
-                                        false, null);
+                                handler.removeCallbacks(runnable);
+                                number = 1;
+                                handler.postDelayed(runnable, 1000);//每一秒执行一次runnable。
                             }
-                            AidlUtil.getInstance().printText("_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _", 2, 25, false, false,
-                                    null);
-                            AidlUtil.getInstance().printLine(1);
-                            AidlUtil.getInstance().printText("合   计：" + selectedGoodsMap.size(), 2, 35,
-                                    false, false, ESCUtil.alignLeft());
-                            AidlUtil.getInstance().printText("订单金额：" + tvTotalMoney.getText().toString(), 2, 35,
-                                    false, false, ESCUtil.alignLeft());
-                            AidlUtil.getInstance().printText("实付金额：" + tvTotalMoney.getText().toString(), 2, 35,
-                                    false, false, ESCUtil.alignLeft());
 
-                            AidlUtil.getInstance().printText("优惠券  ：0.00", 2, 35,
-                                    false, false, ESCUtil.alignLeft());
 
-                            AidlUtil.getInstance().printText("支付方式：扫码支付", 2, 35,
-                                    false, false, ESCUtil.alignLeft());
-                            AidlUtil.getInstance().printText("_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _", 1, 25, false, false,
-                                    null);
-                            AidlUtil.getInstance().printLine(1);
-                            AidlUtil.getInstance().printText("  谢谢您的惠顾，欢迎下次光临！", 2, 35, false,
-                                    false, null);
+                        } else {
 
-                            AidlUtil.getInstance().print3Line();
+                            if (payTipsDialogFragment!=null){
 
-                            AidlUtil.getInstance().cutPrint();
-                            MessageEvent  messageEvent = new MessageEvent("allDelete");
-                            EventBus.getDefault().post(messageEvent);
-                            ((MainActivity)activity).showRightCrashierLayout();
-                            uploadDateToServe(mOrderbean);*/
+                                getFragmentManager().beginTransaction()
+                                        .detach(payTipsDialogFragment)
+                                        .commit();
+                            }
 
-                    } else if (mjsonObjects.getJSONObject("data").getString("result_code").equals("02")) {
-                        Hint.Short(getActivity(), mjsonObjects.getJSONObject("data").getString("return_msg"));
-                    } else if (mjsonObjects.getJSONObject("data").getString("result_code").equals("03")) {
+                            isgoto = true;
+                            //失败也取消
+                            // payTipsDialog.dismiss();
 
-                    //    ToastUtils.showShortToast("03");
-                        handler.postDelayed(runnable, 1000);//每两秒执行一次runnable。
+                            Hint.Short(getActivity(), message);
+                        }
+
+
+                    } catch (JSONException e) {
+
+                        e.printStackTrace();
+
                     }
 
-
-                } else {
-                    //失败也取消
-                    payTipsDialog.dismiss();
-
-                    Hint.Short(getActivity(), message);
                 }
 
+                @Override
+                protected Object clone() throws CloneNotSupportedException {
 
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
+                    isgoto=true;
+
+                    return super.clone();
+
+                }
+
+            });
+        } catch (Exception e) {
+
+            isgoto=true;
+            App.store.put("exception1", e.getMessage() + "  " + e.getCause());
+            App.store.commit();
 
         }
-
-        @Override
-        protected Object clone() throws CloneNotSupportedException {
-            return super.clone();
-        }
-
-    });
-}catch (Exception e){
-
-    App.store.put("exception1",e.getMessage()+"  "+e.getCause());
-    App.store.commit();
-
-}
 
     }
 
     private void saveOrderInfo(int type) {
 
 
-         order = RandomUntil.getNumLargeLetter(17);
+
+        order = RandomUntil.getNumLargeLetter(17);
 
         mOrderbean = new ordersBean();
 
         mOrderbean.setOrder(order);
+        String storeId = App.store.getString("storeId");
 
-        if (type==BALANCE||type==MULTIPLE){
+        mOrderbean.setStore_id(storeId);
 
-            mOrderbean.setStatus(1);
+        //下单时间
+        mOrderbean.setCreate_time(TimeUtils.getCurrentPhpTimeStamp());
+        mOrderbean.setStatus(5);
 
-            if (!TextUtils.isEmpty(user_id)) {
+        if (!TextUtils.isEmpty(user_id)) {
 
-                mOrderbean.setUserid(user_id);
-
-            }
-
-        }else{
-
-            mOrderbean.setStatus(5);
+            mOrderbean.setUserid(user_id);
 
         }
 
 
-        if (discountBean!=null){
+        if (discountBean != null) {
             //mOrderbean.setUserid(discountBean.getUser_id());
             mOrderbean.setCard_id(discountBean.getVipCard_id());
             mOrderbean.setCoupon_id(discountBean.getCoupons_id());
-        }else{
-           // mOrderbean.setUserid("");
+        } else {
+            // mOrderbean.setUserid("");
             mOrderbean.setCard_id("");
             mOrderbean.setCoupon_id("");
         }
         mOrderbean.setTotal_amount(totalMoney + "");
 
         String amount = tvTotalMoney.getText().toString();
-        if (!TextUtils.isEmpty(amount)&&amount.contains("¥")){
+        if (!TextUtils.isEmpty(amount) && amount.contains("￥")) {
 
-            amount = amount.replace("¥ ","");
+            amount = amount.replace("￥ ", "");
         }
 
 
-
-
-         if (type==WECHAT_ZFB||type==CRASH||type==BIAOJI){
+        // if (type==WECHAT_ZFB||type==CRASH||type==BIAOJI){
         mOrderbean.setAmount(amount);
-        }
+        //}
         mOrderbean.setUser_remarks("");
         mOrderbean.setSeller_remarks("");
         mOrderbean.setPayment_id(payment_id);
 
         mOrderbean.setMinus_amount(tvTotalDiscount.getText().toString());//优惠总金额
-        if (moneyBean!=null) {
+        if (moneyBean != null) {
             mOrderbean.setCard_minus(moneyBean.getVipDiscount() + "");//会员卡优惠
             mOrderbean.setCoupon_minus(moneyBean.getMianzhiOrZhrkouDiscount() + "");//优惠券优惠
 
-        }else{
+        } else {
             mOrderbean.setCard_minus("");//会员卡优惠
             mOrderbean.setCoupon_minus("");//优惠券优惠
 
@@ -1458,56 +1757,104 @@ try {
         String str = gson.toJson(orderIteminfoList);
 
         mOrderbean.setOrderInfo(str);
+
+       // mOrderbean.save();
     }
 
-    private void printOrder(String type,String addInfo) {
+    private void printOrder(String type, String addInfo) {
 
-        oldType = type;
-        this.oldAddInfo = addInfo;
-
-        mOrderbean.setIspay("1");
-        mOrderbean.save();
-
-        //String out_trade_no = mjsonObjects.getString("out_trade_no");
-        String TotalMoney =  tvTotalMoney.getText().toString();
-        String TotalDiscount = tvTotalDiscount.getText().toString();
-        String store = App.store.getString("storeinfo");
         try {
-            MessageEvent messageEvent1 = new MessageEvent("ThridFragmentdata");
-            messageEvent1.setThridFragmentdata(store);
-            messageEvent1.setGood_order(order);
+
+            Log.d(TAG, "printOrder: 11");
+            oldType = type;
+            this.oldAddInfo = addInfo;
+
+            //支付成功 设置状态
+            mOrderbean.setIspay("1");
+            mOrderbean.save();
+
+            //String out_trade_no = mjsonObjects.getString("out_trade_no");
+            String TotalMoney = tvTotalMoney.getText().toString();
+            String TotalDiscount = tvTotalDiscount.getText().toString();
+            String store = App.store.getString("storeinfo");
+            try {
+                MessageEvent messageEvent1 = new MessageEvent("ThridFragmentdata");
+                messageEvent1.setThridFragmentdata(store);
+                messageEvent1.setGood_order(order);
 //            messageEvent1.setType(type);
 //            messageEvent1.setTotalMoney(Double.parseDouble(TotalMoney));
-            messageEvent1.setCheap_money(TotalDiscount);
-            messageEvent1.setSelectedGoodsMap(selectedGoodsMap);
-            messageEvent1.setShifu_pay(TotalDiscount);
-            EventBus.getDefault().post(messageEvent1);
-            storeinfo = new JSONObject(store);
+                messageEvent1.setCheap_money(TotalDiscount);
+                messageEvent1.setSelectedGoodsMap(selectedGoodsMap);
+                messageEvent1.setShifu_pay(TotalDiscount);
+                //EventBus.getDefault().post(messageEvent1);
+                storeinfo = new JSONObject(store);
 
-            EventBus.getDefault().post(new MessageEvent("cancelCollection"));
-
-            printInfoBean = getPrintInfoBean(type);
-            //打印
-            singlePrint(printInfoBean);
-
-            ((MainActivity)activity).showPaySucessLayout();
+                //EventBus.getDefault().post(new MessageEvent("cancelCollection"));
 
 
-            uploadDateToServe(mOrderbean);
+                mOrderbean.setPay_time(TimeUtils.getCurrentPhpTimeStamp());
 
-            isPaySucess = true;
+                mOrderbean.setFinish_time(TimeUtils.getCurrentPhpTimeStamp());
+                mOrderbean.save();
+                printInfoBean = getPrintInfoBean(type);
+                Log.d(TAG, "printOrder: before ");
 
-            MessageEvent messageEventSucess = new MessageEvent("paySucess");
-            EventBus.getDefault().post(messageEventSucess);
 
-            MessageEvent messageEvent = new MessageEvent("allDelete");
+                Log.d(TAG, "printOrder: before showPaySucessLayout");
 
-            EventBus.getDefault().post(messageEvent);
+                ((MainActivity) activity).showPaySucessLayout();
 
-        } catch (JSONException e) {
 
-            e.printStackTrace();
+                sendOrderDetailToSucessLayout(mOrderbean);
+
+                //设置支付完成时间与订单完成时间
+
+
+                uploadDateToServe(mOrderbean);
+
+                isPaySucess = true;
+
+                MessageEvent messageEventSucess = new MessageEvent("paySucess");
+
+                EventBus.getDefault().post(messageEventSucess);
+
+                MessageEvent messageEvent = new MessageEvent("allDelete");
+
+                EventBus.getDefault().post(messageEvent);
+
+
+                //打印
+                singlePrint(printInfoBean);
+
+            } catch (JSONException e) {
+
+                e.printStackTrace();
+
+                Log.d(TAG, "printOrder: e= " + e.getMessage());
+            }
+
+        }catch (Exception e){
+
+
         }
+
+
+    }
+
+    /**
+     * 发送订单信息给支付成功展示页
+     */
+
+    private void sendOrderDetailToSucessLayout(ordersBean mOrderbean) {
+
+
+        MessageEvent messageEvent = new MessageEvent(MessageEvent.PAY_SUCESS_SHOW);
+
+        Bundle bundle = new Bundle();
+        bundle.putParcelable(MessageEvent.PAY_SUCESS_SHOW, mOrderbean);
+        messageEvent.setBundle(bundle);
+
+        EventBus.getDefault().post(messageEvent);
 
     }
 
@@ -1522,15 +1869,28 @@ try {
             e.printStackTrace();
         }
 
+
+        //混合支付
+
+        if (!type.contains("余额支付")) {
+
+            if (balancePayBean != null && !TextUtils.isEmpty(balancePayBean.getBalanceTotal())) {
+
+                Log.d(TAG, "getPrintInfoBean: balancePayBean.getBalanceTotal()= "
+                        + balancePayBean.getBalanceTotal());
+                printInfoBean.setBalancePay(balancePayBean.getBalanceTotal());
+
+            }
+
+        }
         printInfoBean.setStoreOrderId(order);
         Date date = new Date();
         SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
+        //printInfoBean.setOrderTime(format.format(date));
 
-        printInfoBean.setOrderTime(format.format(date));
-
-
-        ArrayList<goodsBean>goodsBeanArrayList = new ArrayList<>();
-        Log.d(TAG, "getPrintInfoBean: selectedGoodsMap size= "+selectedGoodsMap.size());
+        printInfoBean.setOrderTime(format.format(Double.parseDouble(mOrderbean.getFinish_time()+"000")));
+        ArrayList<goodsBean> goodsBeanArrayList = new ArrayList<>();
+        Log.d(TAG, "getPrintInfoBean: selectedGoodsMap size= " + selectedGoodsMap.size());
         for (Map.Entry<String, goodsBean> entry : selectedGoodsMap.entrySet()) {
 
             goodsBeanArrayList.add(entry.getValue());
@@ -1543,12 +1903,92 @@ try {
         printInfoBean.setOrderTotal(DecimalFormatUtils.doubleToMoney(totalMoney));
 
 
-        printInfoBean.setActualPay(tvTotalMoney.getText().toString());
+        if (type.contains("现金")) {
 
+            printInfoBean.setActualPay(tvTotalMoney.getText().toString());
 
+            printInfoBean.setActualCrashPay(acual_collect_money);
+            printInfoBean.setReturnCharge(DecimalFormatUtils.doubleToMoney(Double
+                    .parseDouble(zhaoling)));
+
+        } else {
+
+            printInfoBean.setActualPay(tvTotalMoney.getText().toString());
+        }
+
+        Log.d(TAG, "getPrintInfoBean: tvTotalDiscount.getText().toString()= " +
+                (tvTotalDiscount.getText().toString()));
         printInfoBean.setDiscountMoney(tvTotalDiscount.getText().toString());
+        //minus_amount
+        //支付类型
+
 
         printInfoBean.setPayType(type);
+
+
+        if (type.contains("微信")) {
+
+            printInfoBean.setMethod(0);
+            printInfoBean.setPayType("微信支付");
+
+
+        } else if (type.contains("支付宝")) {
+
+            printInfoBean.setMethod(1);
+
+            printInfoBean.setPayType("支付宝支付");
+
+        } else if (type.contains("现金")) {
+
+            printInfoBean.setMethod(2);
+
+        } else if (type.contains("标记")) {
+
+            printInfoBean.setMethod(3);
+
+        } else if (type.contains("余额")) {
+
+            printInfoBean.setMethod(4);
+
+        }
+
+        //判断是否是混合支付
+
+        if (mOrderbean.getUse_wallet() == 1 && !type.contains("余额支付")) {
+
+            printInfoBean.setMethod(5);
+
+            printInfoBean.setMultiplut(true);
+
+
+            printInfoBean.setDiscountMoney(mOrderbean.getMinus_amount());
+
+            //sendOrderDetailToSucessLayout();
+            //混合支付应收金额应为总得金额，上面的现金支付会影响其金额
+
+
+            Double actualmoney = (totalMoney)
+                    - Double.parseDouble(mOrderbean.getMinus_amount());
+
+            printInfoBean.setActualPay(DecimalFormatUtils.doubleToMoney(actualmoney));
+
+            if (balancePayBean != null) {
+
+                printInfoBean.setLeaveOrderPay(balancePayBean.getOrderLeaveMoney());
+            }
+
+        }
+
+        //余额支付
+
+        printInfoBean.setLeaveBalance(mOrderbean.getLeaveBalance());
+
+        if (vipInfo != null) {
+
+            printInfoBean.setUserMobile(vipInfo.getMobile());
+
+        }
+
 
         return printInfoBean;
 
@@ -1557,15 +1997,22 @@ try {
 
     /**
      * 因printOrder耦合度太高，所以给打印单独抽出来
-     * */
+     */
     private void singlePrint(PrintInfoBean printInfoBean) throws JSONException {
 
 
-        Log.d(TAG, "singlePrint: PrintInfoBean= "+printInfoBean.toString());
+        //Yue_PrintUtils.print_info(printInfoBean);
+
+
+        MessageEvent messageEvent1 = new MessageEvent("ThridFragmentdata");
+            messageEvent1.setPrintInfoBean(printInfoBean);
+              EventBus.getDefault().post(messageEvent1);
+
+/*        Log.d(TAG, "singlePrint: PrintInfoBean= "+printInfoBean.toString());
         Log.d(TAG, "singlePrint: storeinfo= "+storeinfo.toString());
-       /* AidlUtil.getInstance().printText(
+       *//* AidlUtil.getInstance().printText(
                 storeinfo.getString("name"), 2, 50, true,
-                false, ESCUtil.alignCenter());*/
+                false, ESCUtil.alignCenter());*//*
 
         AidlUtil.getInstance().printText(
                 printInfoBean.getStoreName(), 2, 50, true,
@@ -1597,12 +2044,12 @@ try {
 
 
         {
-            /*String namse = entry.getValue().getGoodsName();
-            System.out.println(entry.getKey() + ": " + entry.getValue() + namse);*/
+            *//*String namse = entry.getValue().getGoodsName();
+            System.out.println(entry.getKey() + ": " + entry.getValue() + namse);*//*
 //                AidlUtil.getInstance().printText(
 //                        entry.getValue().getGoodsName() + "    x" + entry.getValue().getNumber(), 0, 35, false,
 //                        false, ESCUtil.alignLeft());
-//                AidlUtil.getInstance().printText("    ¥" + entry.getValue().getPrice(), 2, 35, false,
+//                AidlUtil.getInstance().printText("    ￥" + entry.getValue().getPrice(), 2, 35, false,
 //                        false, null);
             AidlUtil.getInstance().printText(
                     formatStr(entry.getGoodsName()) + " x"
@@ -1628,11 +2075,23 @@ try {
                         printInfoBean.getActualPay(), 1, 35,
                 false, false, ESCUtil.alignLeft());
         AidlUtil.getInstance().printLine(1);
-        AidlUtil.getInstance().printText("优惠金额："+"¥ "+printInfoBean
+
+        if (!TextUtils.isEmpty(printInfoBean.getBalancePay())){
+
+
+            AidlUtil.getInstance().printText("余额支付：" +"￥ "+
+                            printInfoBean.getBalancePay(), 1, 35,
+                    false, false, ESCUtil.alignLeft());
+            AidlUtil.getInstance().printLine(1);
+
+        }
+
+
+        AidlUtil.getInstance().printText("优惠金额："+"￥ "+printInfoBean
                 .getDiscountMoney(), 1, 35,
                 false, false, ESCUtil.alignLeft());
         AidlUtil.getInstance().printLine(1);
-            /*if (moneyBean!=null) {
+            *//*if (moneyBean!=null) {
                 AidlUtil.getInstance().printText("优惠券  ："+
                                 , 2, 35,
                         false, false, ESCUtil.alignLeft());
@@ -1640,7 +2099,7 @@ try {
 
                 AidlUtil.getInstance().printText("优惠券  ：0", 2, 35,
                         false, false, ESCUtil.alignLeft());
-            }*/
+            }*//*
         AidlUtil.getInstance().printText("支付方式："+printInfoBean.getPayType(), 2, 35,
                 false, false, ESCUtil.alignLeft());
         AidlUtil.getInstance().printText("_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _", 1, 25, false, false,
@@ -1651,13 +2110,24 @@ try {
 
         AidlUtil.getInstance().print3Line();
 
-        AidlUtil.getInstance().cutPrint();
+        AidlUtil.getInstance().cutPrint();*/
     }
 
 
-    public void moveToPosition(LinearLayoutManager linearLayoutManager,RecyclerView recyclerView
 
-    ,int position){
+    private void singlePrintRecharge(RechargePrint rechargePrint) throws JSONException {
+
+        //Yue_PrintUtils.print_info(printInfoBean);
+        MessageEvent messageEvent1 = new MessageEvent(MessageEvent.RECHARGE_PRINT);
+        messageEvent1.setRechargePrint(rechargePrint);
+        EventBus.getDefault().post(messageEvent1);
+
+
+    }
+
+    public void moveToPosition(LinearLayoutManager linearLayoutManager, RecyclerView recyclerView
+
+            , int position) {
 
         int firstVisibleItemPosition = linearLayoutManager.findFirstVisibleItemPosition();
 
@@ -1666,45 +2136,53 @@ try {
 
         //if (position<firstVisibleItemPosition){
 
-            recyclerView.scrollToPosition(position);
+        recyclerView.scrollToPosition(position);
         //}
-
 
 
     }
 
     /**
      * @Function 上传订单信息到服务器
-     * */
+     */
 
     private void uploadDateToServe(final ordersBean mOrderbean) {
 
 
-        Log.d(TAG, "uploadDateToServe: mOrderbean= "+mOrderbean.toString());
-        //表示使用余额的混合支付
+        Log.d(TAG, "uploadDateToServe: mOrderbean= " + mOrderbean.toString());
+        //表示使用余额支付
+        //使用余额支付的单加一个
         if (mOrderbean.getUse_wallet() == 1) {
 
-            if(payModel==null){
+            if (payModel == null) {
 
                 payModel = new PayModel();
             }
-            payModel.asyncBalanceOrder(mOrderbean.getOrder(), mOrderbean.getServer_order_no(), mOrderbean.getPayment_id(), new NetWorkCallBack() {
-                @Override
-                public void onSucess(Object data) {
+            payModel.asyncBalanceOrder(mOrderbean.getOrder(),
+                    mOrderbean.getTrade_no(),
+                    mOrderbean.getPayment_id(),
+                    mOrderbean.getPay_time(),
+                    mOrderbean.getFinish_time(),
+            new NetWorkCallBack() {
+                        @Override
+                        public void onSucess(Object data) {
 
+                            //说明是单纯余额支付
+                            if (mOrderbean.getAmount().equals("0.00")){
 
+                                mOrderbean.setIsauto("1");
+                                mOrderbean.save();
+                            }
+                        }
 
-                }
+                        @Override
+                        public void onFailed(String msg) {
 
-                @Override
-                public void onFailed(String msg) {
+                            ToastUtils.showShortToast(msg);
+                        }
+                    });
 
-                    ToastUtils.showShortToast(msg);
-                }
-            });
-
-        }else {
-
+        } else {
 
             Log.d(TAG, "uploadDateToServe: mOrderbean= " + mOrderbean.toString());
             Map<String, String> map = new HashMap<>();
@@ -1725,6 +2203,9 @@ try {
             map.put("status", mOrderbean.getStatus() + "");
             map.put("wallet_amount", mOrderbean.getWallet_amount());
             map.put("order_no", mOrderbean.getOrder());
+            map.put("create_time",mOrderbean.getCreate_time());
+            map.put("pay_time",mOrderbean.getPay_time());
+            map.put("finish_time",mOrderbean.getFinish_time());
 
             Xutils.getInstance().post(App.API_URL +
                     App.API_RECEIVE, map, new Xutils.XCallBack() {
@@ -1732,8 +2213,8 @@ try {
                 public void onResponse(String result) {
 
                     Log.d(TAG, "onResponse: result= " + result);
-                    App.store.put("uploadresp", result);
-                    App.store.commit();
+                    //App.store.put("uploadresp", result);
+                    //App.store.commit();
 
                     try {
                         JSONObject jsonObject = new JSONObject(result);
@@ -1762,8 +2243,8 @@ try {
                         e.printStackTrace();
                     }
 
-                    App.store.put("upload", result);
-                    App.store.commit();
+                    //App.store.put("upload", result);
+                    //App.store.commit();
                     // ToastUtils.showShortToast("result= "+result);
 
                 }
@@ -1797,23 +2278,30 @@ try {
         checkImgFileExist(imgTaskId);
     }
 
-    public void XianjinPay(String shifu,String zhaolin ) {
+    public void XianjinPay(String shifu, String zhaolin) {
 
+        try {
+            //Log.d(TAG, "XianjinPay: mOrder= "+mOrderbean.toString());
 
-        Log.d(TAG, "XianjinPay: mOrder= "+mOrderbean.toString());
+            acual_collect_money = shifu;
+            this.zhaoling = zhaolin;
 
-        acual_collect_money = shifu;
-        this.zhaoling = zhaolin;
+            if (balancePayBean == null) {
 
-        if (balancePayBean==null){
+                saveOrderInfo(CRASH);
 
-            saveOrderInfo(CRASH);
+            }
+            mOrderbean.setPayment_id("4");
+            mOrderbean.setActual_input_money(acual_collect_money);
+            mOrderbean.setCharge_money(zhaolin);
+            mOrderbean.save();
+            payMethod = 1;
+            printOrder("现金支付", "");
+        } catch (Exception e) {
 
+            Log.d(TAG, "XianjinPay: e= " + e.getMessage());
         }
-        mOrderbean.setPayment_id("4");
-         mOrderbean.save();
-        payMethod = 1;
-        printOrder("现金支付","");
+
         /*final String order =RandomUntil.getNumLargeLetter(18);
         try {
             String store= App.store.getString("storeinfo");
@@ -1906,86 +2394,17 @@ try {
         try {
 
 
+            if (balancePayBean == null) {
 
-            if (balancePayBean==null){
+                payment_id = payType;
 
-            saveOrderInfo(BIAOJI);
+                saveOrderInfo(BIAOJI);
             }
 
             //mOrderbean.setPayment_id("");
             payMethod = 2;
 
-            printOrder("标记支付",payType);
-
-            /*mOrderbean.setOrder(order);
-            //mOrderbean.setPayment_id("2");
-
-            mOrderbean.setIspay("1");
-            mOrderbean.save();
-
-            String store= App.store.getString("storeinfo");
-            JSONObject storeinfo=new JSONObject(store);
-
-            AidlUtil.getInstance().printText(
-                    storeinfo.getString("name"), 2, 50, true,
-                    false, ESCUtil.alignCenter());
-            Date date = new Date();
-            SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
-            AidlUtil.getInstance().printText("销售订单:"+order , 2, 35, false,
-                    false, ESCUtil.alignLeft());
-            AidlUtil.getInstance().printText("交易时间:"+format.format(date) , 1, 35, false,
-                    false, ESCUtil.alignLeft());
-
-            AidlUtil.getInstance().printText("_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _", 2, 25, false, false,
-                    null);
-            AidlUtil.getInstance().printLine(1);
-            for(Map.Entry<String, goodsBean> entry : selectedGoodsMap.entrySet()) {
-                String namse= entry.getValue().getGoodsName();
-                System.out.println(entry.getKey() + ": "  + entry.getValue()+namse);
-                AidlUtil.getInstance().printText(
-                        entry.getValue().getGoodsName() + "    x" + entry.getValue().getNumber(), 0, 35, false,
-                        false, ESCUtil.alignLeft());
-                AidlUtil.getInstance().printText("    ￥" + entry.getValue().getPrice(), 2, 35, false,
-                        false, null);
-            }
-            AidlUtil.getInstance().printText("_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _", 2, 25, false, false,
-                    null);
-            AidlUtil.getInstance().printLine(1);
-
-            AidlUtil.getInstance().printText("合   计："+selectedGoodsMap.size(), 2, 35,
-                    false, false, ESCUtil.alignLeft());
-            AidlUtil.getInstance().printText("订单金额："+tvTotalMoney.getText().toString(), 2, 35,
-                    false, false, ESCUtil.alignLeft());
-            AidlUtil.getInstance().printText("优惠金额  ：0.00" , 2, 35,
-                    false, false, ESCUtil.alignLeft());
-//            AidlUtil.getInstance().printText("现金收款："+shifu+".00", 2, 35,
-//                    false, false, ESCUtil.alignLeft());
-            AidlUtil.getInstance().printText("应付金额："+tvTotalMoney.getText().toString(), 2, 35,
-                    false, false, ESCUtil.alignLeft());
-//            AidlUtil.getInstance().printText("找    零："+zhaolin , 2, 35,
-//                    false, false, ESCUtil.alignLeft());
-
-                    AidlUtil.getInstance().printText("支付方式：标记收款-"+payType , 2, 35,
-                            false, false, ESCUtil.alignLeft());
-            AidlUtil.getInstance().printText("_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _", 1, 25, false, false,
-                    null);
-            AidlUtil.getInstance().printLine(1);
-//            AidlUtil.getInstance().printText(" 本店地址"  , 2, 35, false,
-//                    false, null);
-
-            AidlUtil.getInstance().printText("  谢谢您的惠顾，欢迎下次光临！"  , 2, 35, false,
-                    false, null);
-
-            AidlUtil.getInstance().print3Line();
-
-            AidlUtil.getInstance().cutPrint();
-
-            MessageEvent  messageEvent = new MessageEvent("allDelete");
-            EventBus.getDefault().post(messageEvent);
-            ((MainActivity)activity).showRightCrashierLayout();*/
-//                    } else {
-//                        Hint.Short(getActivity(), message);
-//                    }
+            printOrder("标记支付", payType);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -2045,7 +2464,7 @@ try {
         }*/
         isPaySucess = false;
 
-        Log.d(TAG, "updateSelectedGoods: goodsbean= "+goodsBean.toString());
+        Log.d(TAG, "updateSelectedGoods: goodsbean= " + goodsBean.toString());
 
 
         //   if (selectedGoodsMap.get(goodsBean.getGoodsId())!=null) {
@@ -2053,7 +2472,7 @@ try {
 
         selectedGoodsMap.put(goodsBean.getGoodsId(), goodsBean);
 
-        Log.d(TAG, "updateSelectedGoods: selectedGoodsMap= "+selectedGoodsMap.size());
+        Log.d(TAG, "updateSelectedGoods: selectedGoodsMap= " + selectedGoodsMap.size());
         //   }
 
            /* for (int i = 0; i < selectedGoodsArrayList.size(); i++) {
@@ -2084,10 +2503,8 @@ try {
             }
 
 
-
-
         }
-        Log.d(TAG, "updateSelectedGoods: copy finish= "+selectedGoodsArrayList.get(0).getNumber());
+        Log.d(TAG, "updateSelectedGoods: copy finish= " + selectedGoodsArrayList.get(0).getNumber());
 
 
         /*Log.d(TAG, "updateSelectedGoods: size= "+selectedGoodsArrayList.size()
@@ -2100,9 +2517,9 @@ try {
         checkImgsMenuExists(imgsMenuTaskId);*/
 
 
-        Log.d(TAG, "updateSelectedGoods: oldSelectedGoodsArrayList= "+oldSelectedGoodsArrayList.toString()+"   selectedGoodsArrayList= "+selectedGoodsArrayList.toString());
+        Log.d(TAG, "updateSelectedGoods: oldSelectedGoodsArrayList= " + oldSelectedGoodsArrayList.toString() + "   selectedGoodsArrayList= " + selectedGoodsArrayList.toString());
 
-        Log.d(TAG, "updateSelectedGoods: oldSelectedGoodsArrayList= "+oldSelectedGoodsArrayList.hashCode()+" selectedGoodsArrayList= "+selectedGoodsArrayList.hashCode());
+        Log.d(TAG, "updateSelectedGoods: oldSelectedGoodsArrayList= " + oldSelectedGoodsArrayList.hashCode() + " selectedGoodsArrayList= " + selectedGoodsArrayList.hashCode());
         //也是更新，换一种方式更新，用DiffUtils
         //updateDiffUtils(selectedGoodsArrayList,oldSelectedGoodsArrayList);
 
@@ -2111,10 +2528,8 @@ try {
 //        selectPosition = getAddItemPosition(goodsBean,selectedGoodsArrayList);
 
 
-
-
         //13516492591 sj12345678
-        moveToPosition(linearLayoutManager,rvSelectedGoods,selectPosition);
+        moveToPosition(linearLayoutManager, rvSelectedGoods, selectPosition);
 
         /*for (goodsBean good:selectedGoodsArrayList) {
 
@@ -2134,7 +2549,7 @@ try {
     }
 
 
-    public void updateSelectedGoodsWithType(goodsBean goodsBean,int type) {
+    public void updateSelectedGoodsWithType(goodsBean goodsBean, int type) {
 
 
 
@@ -2163,7 +2578,7 @@ try {
         }*/
         isPaySucess = false;
 
-        Log.d(TAG, "updateSelectedGoods: goodsbean= "+goodsBean.toString());
+        Log.d(TAG, "updateSelectedGoods: goodsbean= " + goodsBean.toString());
 
 
         //   if (selectedGoodsMap.get(goodsBean.getGoodsId())!=null) {
@@ -2171,7 +2586,7 @@ try {
 
         selectedGoodsMap.put(goodsBean.getGoodsId(), goodsBean);
 
-        Log.d(TAG, "updateSelectedGoods: selectedGoodsMap= "+selectedGoodsMap.size());
+        Log.d(TAG, "updateSelectedGoods: selectedGoodsMap= " + selectedGoodsMap.size());
         //   }
 
            /* for (int i = 0; i < selectedGoodsArrayList.size(); i++) {
@@ -2204,7 +2619,7 @@ try {
 //            Collections.reverse(selectedGoodsArrayList);
 
         }
-        Log.d(TAG, "updateSelectedGoods: copy finish= "+selectedGoodsArrayList.get(0).getNumber());
+        Log.d(TAG, "updateSelectedGoods: copy finish= " + selectedGoodsArrayList.get(0).getNumber());
 
 
         /*Log.d(TAG, "updateSelectedGoods: size= "+selectedGoodsArrayList.size()
@@ -2217,9 +2632,9 @@ try {
         checkImgsMenuExists(imgsMenuTaskId);*/
 
 
-        Log.d(TAG, "updateSelectedGoods: oldSelectedGoodsArrayList= "+oldSelectedGoodsArrayList.toString()+"   selectedGoodsArrayList= "+selectedGoodsArrayList.toString());
+        Log.d(TAG, "updateSelectedGoods: oldSelectedGoodsArrayList= " + oldSelectedGoodsArrayList.toString() + "   selectedGoodsArrayList= " + selectedGoodsArrayList.toString());
 
-        Log.d(TAG, "updateSelectedGoods: oldSelectedGoodsArrayList= "+oldSelectedGoodsArrayList.hashCode()+" selectedGoodsArrayList= "+selectedGoodsArrayList.hashCode());
+        Log.d(TAG, "updateSelectedGoods: oldSelectedGoodsArrayList= " + oldSelectedGoodsArrayList.hashCode() + " selectedGoodsArrayList= " + selectedGoodsArrayList.hashCode());
         //也是更新，换一种方式更新，用DiffUtils
         //updateDiffUtils(selectedGoodsArrayList,oldSelectedGoodsArrayList);
 
@@ -2234,17 +2649,14 @@ try {
 //
 //        }
 
-                goodsSelectAdapter.updateData(selectedGoodsArrayList);
-
+        goodsSelectAdapter.updateData(selectedGoodsArrayList);
 
 
 //        selectPosition = getAddItemPosition(goodsBean,selectedGoodsArrayList);
 
 
-
-
         //13516492591 sj12345678
-        moveToPosition(linearLayoutManager,rvSelectedGoods,selectPosition);
+        moveToPosition(linearLayoutManager, rvSelectedGoods, selectPosition);
 
         /*for (goodsBean good:selectedGoodsArrayList) {
 
@@ -2264,24 +2676,20 @@ try {
     }
 
     /**
-     *
      * 用DiffUtils局部刷新
-
-     * */
+     */
 
     private void updateDiffUtils(ArrayList<goodsBean> selectedGoodsArrayList,
                                  ArrayList<goodsBean> oldSelectedGoodsArrayList) {
 
 
+        if (goodsSelectAdapter != null) {
 
-        if (goodsSelectAdapter!=null){
 
-
-            DiffUtil.DiffResult diffResult = DiffUtil.calculateDiff(new AdapterDiffCallBack(oldSelectedGoodsArrayList,selectedGoodsArrayList));
+            DiffUtil.DiffResult diffResult = DiffUtil.calculateDiff(new AdapterDiffCallBack(oldSelectedGoodsArrayList, selectedGoodsArrayList));
 
             diffResult.dispatchUpdatesTo(goodsSelectAdapter);
         }
-
 
 
     }
@@ -2289,24 +2697,24 @@ try {
     private int getAddItemPosition(goodsBean goodsBean, ArrayList<goodsBean> selectedGoodsArrayList) {
 
 
-        if (goodsBean==null||selectedGoodsArrayList.size()==0){
+        if (goodsBean == null || selectedGoodsArrayList.size() == 0) {
 
             return -1;
         }
 
         int position = selectedGoodsArrayList.indexOf(goodsBean);
 
-        Log.d(TAG, "getAddItemPosition: position= "+position);
+        Log.d(TAG, "getAddItemPosition: position= " + position);
         return position;
     }
 
     @Override
     public void onItemClick(View view, int position) {
 
-        if (((MainActivity)getActivity()).isRightFragmentShow(RightFragmentType.CHANGE_GOODS_COUNT)||
-                ((MainActivity)getActivity()).isRightFragmentShow(RightFragmentType.UNSELECTGOODS)||
-                ((MainActivity)getActivity()).isRightFragmentShow(RightFragmentType.PAY)
-                ){
+        if (((MainActivity) getActivity()).isRightFragmentShow(RightFragmentType.CHANGE_GOODS_COUNT) ||
+                ((MainActivity) getActivity()).isRightFragmentShow(RightFragmentType.UNSELECTGOODS) ||
+                ((MainActivity) getActivity()).isRightFragmentShow(RightFragmentType.PAY)
+                ) {
 
             /*Toast.makeText(activity, "请先完成当前操作", Toast.LENGTH_SHORT)
                     .show();*/
@@ -2327,33 +2735,36 @@ try {
          
             sendImgsMenu(g.getLocal_image());
         }*/
-        
+
     }
 
 
     /***
      * @Function 整单取消
      */
-    public void allDelete(){
+    public void allDelete() {
 
         rlYouhuiquan.setVisibility(View.GONE);
+
+        rlVip.setVisibility(View.GONE);
         selectedGoodsMap.clear();
         goodsSelectMap.clear();
 
         selectedGoodsArrayList.clear();
 
-        Log.d(TAG, "allDelete: selectedGoodsArrayList= "+selectedGoodsArrayList.size());
+        Log.d(TAG, "allDelete: selectedGoodsArrayList= " + selectedGoodsArrayList.size());
         goodsSelectAdapter.updateData(selectedGoodsArrayList);
         long imgsMenuTaskId = (long) SharePreferenceUtil.getParam(getActivity(), imgsKey, 0L);
         checkImgsMenuExists(imgsMenuTaskId);
         updateTotalMoney();
     }
+
     @Override
     public void onDelete(View view, int position) {
 
-        if (((MainActivity)getActivity()).isRightFragmentShow(RightFragmentType.CHANGE_GOODS_COUNT)
-                ||((MainActivity)getActivity()).isRightFragmentShow(RightFragmentType.UNSELECTGOODS)||
-                ((MainActivity)getActivity()).isRightFragmentShow(RightFragmentType.PAY)
+        if (((MainActivity) getActivity()).isRightFragmentShow(RightFragmentType.CHANGE_GOODS_COUNT)
+                || ((MainActivity) getActivity()).isRightFragmentShow(RightFragmentType.UNSELECTGOODS) ||
+                ((MainActivity) getActivity()).isRightFragmentShow(RightFragmentType.PAY)
                 ) {
            /* Toast.makeText(activity, "请先完成当前操作", Toast.LENGTH_SHORT)
                     .show();*/
@@ -2367,401 +2778,490 @@ try {
 
                 + " id= " + selectedGoodsArrayList.get(position).getGoodsId());
 
-        if (!goodsSelectMap.isEmpty() && goodsSelectMap.get(selectedGoodsArrayList.get(position).getGoodsId()) != null) {
+        if (!goodsSelectMap.isEmpty() &&
+                goodsSelectMap.get(selectedGoodsArrayList.get(position).getGoodsId()) != null) {
 
             goodsSelectMap.remove(selectedGoodsArrayList.get(position).getGoodsId());
         }
         selectedGoodsArrayList.remove(position);
-
         goodsSelectAdapter.notifyItemRemoved(position);
-
         goodsSelectAdapter.updateData(selectedGoodsArrayList);
         updateTotalMoney();
-
     }
 
 
-    @Subscribe(threadMode = ThreadMode.MAIN, sticky = true,priority = 10)
+    @Subscribe(threadMode = ThreadMode.MAIN, priority = 10)
     public void onEventsticky(MessageEvent messageEvent) {
 
-       try {
-           Log.d(TAG, "onEvent: pay= " + messageEvent.getAuthCode() + " type= " +
-                   messageEvent.getType());
+        try {
+            Log.d(TAG, "onEvent: pay= " + messageEvent.getAuthCode() + " type= " +
+                    messageEvent.getType());
+
+            if(messageEvent.getType().equals(MessageEvent.COLLECTION_CANCEL_ENABLE)){
+
+                boolean isEnable = messageEvent.isTypeBoolean();
+                Log.d(TAG, "onEventsticky: isEnable= "+isEnable);
+                setCancelAndClooectionEnable(isEnable);
+            }
 
 
+            if (messageEvent.getType().equals(MessageEvent.RECHARGE)){
+
+                isRecharge = true;
+                setCancelAndClooectionEnable(false);
+                rechargeOrderBean = messageEvent.getBundle()
+                        .getParcelable(MessageEvent.RECHARGE);
+                tvTotalMoney.setText("￥"+rechargeOrderBean.getAmount());
+                tvTotalDiscount.setText("￥"+"0.00");
+                //通知后侧支付fragment不能滑动
+                MessageEvent messageEvent1 = new MessageEvent(MessageEvent.PAY_NOT_SCROLL);
+                EventBus.getDefault().post(messageEvent1);
+               // recharge_id = messageEvent.getStringValues();
+            }
+
+            if (messageEvent.getType().equals("ThridisPay")) {
+                Log.d(TAG, "onEvent: ThridFragmentPay= " + messageEvent.getIsPay());
+                isPay = messageEvent.getIsPay();
+            }
+            if (messageEvent.getType().equals("ThridFragmentPay")) {
+                Log.d(TAG, "onEvent: ThridFragmentPay= ");
+                //if (isPay.equals("1"))
+
+                //判断是否是支付页面在显示
+                boolean isPayFragmentVisivity = ((MainActivity) getActivity()).isRightFragmentShow(RightFragmentType.PAY);
+
+                Log.d(TAG, "onEventsticky: isPayFragmentVisivity= "+isPayFragmentVisivity);
+                App.store.put("vidibity", isPayFragmentVisivity);
+
+                boolean isRightCrashierVisivity = ((MainActivity) getActivity()).isRightFragmentShow(RightFragmentType.RIGHT_CRASHIER);
+                if (isPayFragmentVisivity) {
+                    String payment_num = messageEvent.getAuthCode();
+                    App.store.put("isThirdPay", APPUtil.isThirdPay(payment_num));
+                    App.store.commit();
+                    if (APPUtil.isThirdPay(payment_num)) {
+
+                        MessageEvent messageEvent1 = EventBus.getDefault().getStickyEvent(MessageEvent.class);
+
+                        if (messageEvent1!= null) {
+
+                            EventBus.getDefault().removeAllStickyEvents();
+                        }
+
+                        Log.d(TAG, "onEventsticky: isRecharge= "+isRecharge);
+
+                        if (isRecharge&&isComingRecharge){
+                            
+                            isComingRecharge = false;
+                            
+                            goToRecharge(messageEvent.getAuthCode());
+
+                            setCancelAndClooectionEnable(false);
+
+                        }else if (!isRecharge&&isgoto){
 
 
-           if (messageEvent.getType().equals("ThridisPay")) {
-               Log.d(TAG, "onEvent: ThridFragmentPay= " + messageEvent.getIsPay());
-               isPay = messageEvent.getIsPay();
+                           isgoto = false;
 
-           }
-           if (messageEvent.getType().equals("ThridFragmentPay")) {
-               Log.d(TAG, "onEvent: ThridFragmentPay= ");
-               //if (isPay.equals("1"))
-
-               //判断是否是支付页面在显示
-               boolean isPayFragmentVisivity = ((MainActivity) getActivity()).isRightFragmentShow(RightFragmentType.PAY);
-
-               App.store.put("vidibity", isPayFragmentVisivity);
-
-               boolean isRightCrashierVisivity = ((MainActivity) getActivity()).isRightFragmentShow(RightFragmentType.RIGHT_CRASHIER);
-               if (isPayFragmentVisivity) {
-                   String payment_num = messageEvent.getAuthCode();
-                   /*Toast.makeText(getActivity(), "支付码： " + messageEvent.getAuthCode(), Toast.LENGTH_SHORT).show();*/
-                   App.store.put("isThirdPay", APPUtil.isThirdPay(payment_num));
-                   App.store.commit();
-                   if (APPUtil.isThirdPay(payment_num)) {
-
-                       MessageEvent messageEvent1 = EventBus.getDefault().getStickyEvent(MessageEvent.class);
-
-                       if (messageEvent1 != null) {
-
-                           EventBus.getDefault().removeAllStickyEvents();
-                       }
+                        sendPay(messageEvent.getAuthCode());
+                    }
 
 
-                       sendPay(messageEvent.getAuthCode());
                    /* dialog.setLoadingBuilder(Z_TYPE.STAR_LOADING)//设置类型
                             .setLoadingColor(Color.BLACK)//颜色
                             .setHintText("支付中，请稍后...")
                             .show();*/
-                   } else {
-                       Toast.makeText(getActivity(), "请正确扫码支付！ ", Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(getActivity(), "请正确扫码支付！ ", Toast.LENGTH_SHORT).show();
 
-                   }
+                    }
 
-               }
-               //说明要么是商品列表界面，要么是会员登录界面
-               if (isRightCrashierVisivity){
+                }
+                //说明要么是商品列表界面，要么是会员登录界面或者是储值卡
+                else if (isRightCrashierVisivity) {
 
+                    Log.d(TAG, "onEventsticky: isRightCrashierVisivity= " + isRightCrashierVisivity
+                    );
 
-                   //(()((MainActivity)activity).right_crashier_fragment)
+                    //(()((MainActivity)activity).right_crashier_fragment)
 
-                   //右边商品列表界面可见
-                   if (((MainActivity) getActivity()).getRightGoodsragmentVisibity()){
+                    //右边商品列表界面可见
+                    if (((MainActivity) getActivity()).getRightGoodsragmentVisibity()) {
 
-                       Log.d(TAG, "onEventsticky: right_goods");
+                        Log.d(TAG, "onEventsticky: right_goods");
 
-                       String payment_num = messageEvent.getAuthCode();
-                       // ToastUtils.showShortToast(payment_num);
+                        String payment_num = messageEvent.getAuthCode();
+                        // ToastUtils.showShortToast(payment_num);
 
-                       // queryFromSQL(payment_num);
-                       List<goodsBean> goodsBeanList = DataSupport.where("product_no = ? and  storeid = ?"
-                               , payment_num, App.store.getString("storeId")).find(com.qimai.xinlingshou.bean.goodsBean.class);
+                        // queryFromSQL(payment_num);
+                        List<goodsBean> goodsBeanList = DataSupport.where("product_no = ? and  storeid = ?", payment_num, App.store.getString("storeId")).find(com.qimai.xinlingshou.bean.goodsBean.class);
 
-                       if (goodsBeanList.size() > 0) {
+                        Log.d(TAG, "onEventsticky: payment_num= " + payment_num
+
+                                + " goodsBeanList size= " + goodsBeanList.size());
+                        if (goodsBeanList.size() > 0) {
                     /*ToastUtils.showShortToast(""
                             +(((MainActivity)getActivity()).
                             isRightFragmentShow(RightFragmentType.PAY)));*/
 
-                           //ToastUtils.showShortToast("you");
-                           MessageEvent message = new MessageEvent("update");
-                           message.setGoodsBean(goodsBeanList.get(0));
+                            //ToastUtils.showShortToast("you");
+                            MessageEvent message = new MessageEvent("update");
+                            message.setGoodsBean(goodsBeanList.get(0));
 
 
-                           goodsBean = goodsBeanList.get(0);
-                           if (goodsBean != null) {
+                            goodsBean = goodsBeanList.get(0);
+                            if (goodsBean != null) {
 
-                               if (goodsSelectMap.get(goodsBean.getGoodsId()) == null) {
+                                if (goodsSelectMap.get(goodsBean.getGoodsId()) == null) {
 
-                                   goodsSelectMap.put(goodsBean.getGoodsId(), 1);
+                                    goodsSelectMap.put(goodsBean.getGoodsId(), 1);
 
-                               } else {
+                                } else {
 
-                                   int number = goodsSelectMap.get(goodsBean.getGoodsId());
-                                   Log.d(TAG, "onEvent: number= " + number + " id= " +
-                                           goodsBean.getGoodsId()
+                                    int number = goodsSelectMap.get(goodsBean.getGoodsId());
+                                    Log.d(TAG, "onEvent: number= " + number + " id= " +
+                                            goodsBean.getGoodsId()
 
-                                           + " type= " + goodsBean.getChangeType());
-                                   if (goodsBean.getChangeType() == null) {
-                                       Log.d(TAG, "onEvent: number++");
-                                       number++;
-                                   } else if (goodsBean.getChangeType().equals("countChange")) {
-                                       number = goodsBean.getNumber();
-                                       goodsBean.setChangeType("");
-                                   } else {
-                                       number++;
-
-
-                                   }
-                                   goodsSelectMap.put(goodsBean.getGoodsId(), number);
-                               }
-
-                               goodsBean.setNumber(goodsSelectMap.get(goodsBean.getGoodsId()));
-                           }
-
-                           //去更新集合
-                           updateSelectedGoods(goodsBean);
-
-                           //去更新应收金额有两个地方 商品选择数量变化时与删除商品时
-
-                           updateTotalMoney();
+                                            + " type= " + goodsBean.getChangeType());
+                                    if (goodsBean.getChangeType() == null) {
+                                        Log.d(TAG, "onEvent: number++");
+                                        number++;
+                                    } else if (goodsBean.getChangeType().equals("countChange")) {
+                                        number = goodsBean.getNumber();
+                                        goodsBean.setChangeType("");
+                                    } else {
+                                        number++;
 
 
-                           //EventBus.getDefault().post(messageEvent);
-                       } else {
+                                    }
+                                    goodsSelectMap.put(goodsBean.getGoodsId(), number);
+                                }
 
-                           Toast.makeText(getActivity(), "未搜索到该商品信息！ ", Toast.LENGTH_SHORT).show();
+                                goodsBean.setNumber(goodsSelectMap.get(goodsBean.getGoodsId()));
+                            }
 
-                       }
+                            //去更新集合
+                            updateSelectedGoods(goodsBean);
 
-                       //是右边会员登录
-                   }else{
+                            //去更新应收金额有两个地方 商品选择数量变化时与删除商品时
 
-
-                       Log.d(TAG, "onEventsticky: right_vip");
-
-
-                       MessageEvent messageEvent1 = new MessageEvent(MessageEvent.SCAN_VIP_LOGIN);
-
-                       messageEvent1.setStringValues(messageEvent.getAuthCode());
-                       EventBus.getDefault().post(messageEvent1);
-                   }
+                            updateTotalMoney();
 
 
-               }
-
-           }
-           //现金支付
-           if (messageEvent.getType().equals("XianjingPay")) {
+                            //EventBus.getDefault().post(messageEvent);
+                        } else {
 
 
-               Log.d(TAG, "onEvent: XianjingPay= " + messageEvent.getAuthCode());
-               XianjinPay(messageEvent.getShifu_pay(), messageEvent.getZhaoling_pay());
-           }
-           //标记支付
-           if (messageEvent.getType().equals("BiaojiPay")) {
+                            Log.d(TAG, "onEventsticky: getStackTraceString= "+
+                                    Log
+                                            .getStackTraceString(new Throwable())
+                            );
+                            Toast.makeText(getActivity(), "未搜索到该商品信息！ ", Toast.LENGTH_SHORT).show();
+
+                        }
+
+                        //是右边会员登录
+                    } else if (((MainActivity) getActivity()).getRightClientLoginFragmentVisibity()){
+
+
+                        //后边展示会员信息界面是否可见
+                        boolean vip_visibity = ((MainActivity) getActivity()).getRightVipInfoFragmentVisibity();
+
+
+                        //右边展示储值卡列表是否可见
+                        boolean value_rechard_visibity = ((MainActivity) getActivity()).getRightRechargeFragmentVisibity();
+
+
+                        Log.d(TAG, "onEventsticky: right_vip vip_visibity= "+vip_visibity
+
+                        +" value_rechard_visibity= "+value_rechard_visibity);
+
+                        //boolean isRechargeValueCardVisibity =
+
+
+                        //会员展示界面与储值卡列表界面都不可见
+                        if (!vip_visibity&&!value_rechard_visibity){
+
+                        MessageEvent messageEvent1 = new MessageEvent(MessageEvent.SCAN_VIP_LOGIN);
+
+                        messageEvent1.setStringValues(messageEvent.getAuthCode());
+                        EventBus.getDefault().post(messageEvent1);
+                    }
+                    //会员卡展示界面可见 储值卡展示界面不可见
+                    else if (vip_visibity&&!value_rechard_visibity){
+
+
+
+                        }
+                        //会员卡展示界面不可见 储值卡列表界面可见
+                        else if (!vip_visibity&&value_rechard_visibity){
+
+
+                        }
+
+
+                    }
+
+
+                }
+
+            }
+            //现金支付
+            if (messageEvent.getType().equals("XianjingPay")) {
+
+
+                Log.d(TAG, "onEvent: XianjingPay= " + messageEvent.getAuthCode());
+                XianjinPay(messageEvent.getShifu_pay(), messageEvent.getZhaoling_pay());
+            }
+            //标记支付
+            if (messageEvent.getType().equals("BiaojiPay")) {
 //            Log.d(TAG, "onEvent: BiaojiPay= " + messageEvent.getAuthCode());
-               biaojiPay(messageEvent.getIsPay());
-           }
-           //优惠券相关操作
-           if (messageEvent.getType().equals("coupons")) {
-               if (messageEvent.getYouhuiquan().equals("1")) {
-                   try {
-                       //面值券计算
-                       if (messageEvent.getYouhuitype().equals("1")) {
-                           //
-                           Double cny2 = string2Double(tvTotalDiscount.getText().toString());
-                           Double min_ = string2Double(messageEvent.getMin_amount_use());
-                           if (min_ <= cny2) {
-                               Hint.Short(getActivity(), "该优惠券不满足使用条件");
-                               return;
-                           }
-                           selectedOrderMap.setCoupon_minus(messageEvent.getCheap_money());
-                           //优惠金额
+                biaojiPay(messageEvent.getIsPay());
+            }
+            //优惠券相关操作
+            if (messageEvent.getType().equals("coupons")) {
+                if (messageEvent.getYouhuiquan().equals("1")) {
+                    try {
+                        //面值券计算
+                        if (messageEvent.getYouhuitype().equals("1")) {
+                            //
+                            Double cny2 = string2Double(tvTotalDiscount.getText().toString());
+                            Double min_ = string2Double(messageEvent.getMin_amount_use());
+                            if (min_ <= cny2) {
+                                Hint.Short(getActivity(), "该优惠券不满足使用条件");
+                                return;
+                            }
+                            selectedOrderMap.setCoupon_minus(messageEvent.getCheap_money());
+                            //优惠金额
 //                        String CNY3 = df.format(Double.parseDouble()); //6.20   这个是字符串，但已经是我要的两位小数了
-                           Double cny3 = string2Double(messageEvent.getCheap_money());
-                           Double TotalDiscount = cny3 + cny2;
-                           rlYouhuiquan.setVisibility(View.VISIBLE);
-                           tvTotalDiscount.setText("" + TotalDiscount);
-                           youhuimoney.setText("优惠" + messageEvent.getCheap_money() + "元");
-                           //折扣券计算
-                       } else if (messageEvent.getYouhuitype().equals("2")) {
-                           //优惠折扣
-                           Double cny2 = string2Double(tvTotalDiscount.getText().toString());
-                           //应付金额
-                           Double TotalMoney = string2Double(tvTotalMoney.getText().toString().substring(1, tvTotalMoney.getText().toString().length()));
-                           Double bbb = TotalMoney - cny2;
-                           Double cny3 = string2Double(messageEvent.getCheap_money());
-                           Double TotalDiscount = (1 - cny3 * 0.1) * bbb;
-                           youhuimoney.setText("折扣" + messageEvent.getCheap_money() + "折");
-                           tvTotalDiscount.setText("" + TotalDiscount);
-                       }
-                   } catch (Exception e) {
+                            Double cny3 = string2Double(messageEvent.getCheap_money());
+                            Double TotalDiscount = cny3 + cny2;
+                            rlYouhuiquan.setVisibility(View.VISIBLE);
+                            tvTotalDiscount.setText("" + TotalDiscount);
+                            youhuimoney.setText("优惠" + messageEvent.getCheap_money() + "元");
+                            //折扣券计算
+                        } else if (messageEvent.getYouhuitype().equals("2")) {
+                            //优惠折扣
+                            Double cny2 = string2Double(tvTotalDiscount.getText().toString());
+                            //应付金额
+                            Double TotalMoney = string2Double(tvTotalMoney.getText().toString().substring(1, tvTotalMoney.getText().toString().length()));
+                            Double bbb = TotalMoney - cny2;
+                            Double cny3 = string2Double(messageEvent.getCheap_money());
+                            Double TotalDiscount = (1 - cny3 * 0.1) * bbb;
+                            youhuimoney.setText("折扣" + messageEvent.getCheap_money() + "折");
+                            tvTotalDiscount.setText("" + TotalDiscount);
+                        }
+                    } catch (Exception e) {
 
-                   }
+                    }
 
-               } else {
-                   //面值券取消
-                   if (messageEvent.getYouhuitype().equals("1")) {
-                       rlYouhuiquan.setVisibility(View.GONE);
+                } else {
+                    //面值券取消
+                    if (messageEvent.getYouhuitype().equals("1")) {
+                        rlYouhuiquan.setVisibility(View.GONE);
 
-                       Double cny3 = string2Double(tvTotalDiscount.getText().toString()); //6.20
-                       Double min_ = string2Double(messageEvent.getMin_amount_use());
-                       Hint.Short(getActivity(), min_ + "》》》" + cny3);
-                       if (min_ <= cny3) {
+                        Double cny3 = string2Double(tvTotalDiscount.getText().toString()); //6.20
+                        Double min_ = string2Double(messageEvent.getMin_amount_use());
+                        Hint.Short(getActivity(), min_ + "》》》" + cny3);
+                        if (min_ <= cny3) {
 //                        Hint.Short(getActivity(),"该优惠券不满足使用条件");
-                           return;
-                       }
-                       Double cny = string2Double(messageEvent.getCheap_money());
-                       Double abb = cny3 + (-cny);
-                       tvTotalDiscount.setText(abb + "");
-                   } else {
-                       //折扣券取消
-                       rlYouhuiquan.setVisibility(View.GONE);
+                            return;
+                        }
+                        Double cny = string2Double(messageEvent.getCheap_money());
+                        Double abb = cny3 + (-cny);
+                        tvTotalDiscount.setText(abb + "");
+                    } else {
+                        //折扣券取消
+                        rlYouhuiquan.setVisibility(View.GONE);
 
-                       Double cny3 = string2Double(tvTotalDiscount.getText().toString());
+                        Double cny3 = string2Double(tvTotalDiscount.getText().toString());
 
-                       Double cny = string2Double(messageEvent.getCheap_money());
-                       Double abb = cny - cny3;
-                       tvTotalDiscount.setText(abb + "");
-                   }
+                        Double cny = string2Double(messageEvent.getCheap_money());
+                        Double abb = cny - cny3;
+                        tvTotalDiscount.setText(abb + "");
+                    }
 
-               }
+                }
 
-           }
-           //会员卡逻辑
+            }
+            //会员卡逻辑
 
-           if (messageEvent.getType().equals("vip")) {
-               if (messageEvent.getYouhuiquan().equals("1")) {
-                   try {
+            if (messageEvent.getType().equals("vip")) {
+                if (messageEvent.getYouhuiquan().equals("1")) {
+                    try {
 //                    int a = Integer.parseInt(str);
-                       Double cny = (1 - Double.parseDouble(messageEvent.getUservip()) * 0.1) * Double.parseDouble(tvTotalMoney.getText().toString().substring(1, tvTotalMoney.getText().toString().length()));
+                        Double cny = (1 - Double.parseDouble(messageEvent.getUservip()) * 0.1) * Double.parseDouble(tvTotalMoney.getText().toString().substring(1, tvTotalMoney.getText().toString().length()));
 //                    Double cny = Double.parseDouble();//6.2041    这个是转为double类型
-                       DecimalFormat df = new DecimalFormat("0.00");
-                       String CNY = df.format(cny); //6.20   这个是字符串，但已经是我要的两位小数了
-                       Log.i(TAG, CNY);
-                       Double cny2 = Double.parseDouble(CNY); //6.20
-                       tvTotalDiscount.setText("" + cny2);
-                   } catch (NumberFormatException e) {
-                       e.printStackTrace();
-                   }
+                        DecimalFormat df = new DecimalFormat("0.00");
+                        String CNY = df.format(cny); //6.20   这个是字符串，但已经是我要的两位小数了
+                        Log.i(TAG, CNY);
+                        Double cny2 = Double.parseDouble(CNY); //6.20
+                        tvTotalDiscount.setText("" + cny2);
+                    } catch (NumberFormatException e) {
+                        e.printStackTrace();
+                    }
 
-               } else {
+                } else {
 //                rlYouhuiquan.setVisibility(View.GONE);
-                   tvTotalDiscount.setText("0.00");
-                   try {
+                    tvTotalDiscount.setText("0.00");
+                    try {
 //                    int a = Integer.parseInt(str);
 
-                       Double cny = (Double.parseDouble(tvTotalDiscount.getText().toString()));
+                        Double cny = (Double.parseDouble(tvTotalDiscount.getText().toString()));
 //                    Double cny = Double.parseDouble();//6.2041    这个是转为double类型
-                       DecimalFormat df = new DecimalFormat("0.00");
-                       String CNY = df.format(cny); //6.20   这个是字符串，但已经是我要的两位小数了
-                       Log.i(TAG, CNY);
-                       Double cny2 = Double.parseDouble(CNY); //6.20
-                       tvTotalDiscount.setText("" + cny2);
-                   } catch (NumberFormatException e) {
-                       e.printStackTrace();
-                   }
-               }
+                        DecimalFormat df = new DecimalFormat("0.00");
+                        String CNY = df.format(cny); //6.20   这个是字符串，但已经是我要的两位小数了
+                        Log.i(TAG, CNY);
+                        Double cny2 = Double.parseDouble(CNY); //6.20
+                        tvTotalDiscount.setText("" + cny2);
+                    } catch (NumberFormatException e) {
+                        e.printStackTrace();
+                    }
+                }
 
-           }
-           if (messageEvent.getType().equals(CALCULATEDISCOUNT)) {
+            }
+            if (messageEvent.getType().equals(CALCULATEDISCOUNT)) {
 
-               Log.d(TAG, "onEventsticky: CALCULATEDISCOUNT");
-               discountBean = messageEvent.getDiscountBean();
+                Log.d(TAG, "onEventsticky: CALCULATEDISCOUNT");
+                discountBean = messageEvent.getDiscountBean();
             /*Log.d(TAG, "onEventsticky: diacountBean = "+discountBean.toString()
 
 
             +" totalMoney= "+totalMoney);*/
-               double vip_card = 0;
+                double vip_card = 0;
+                Log.d(TAG, "onEventsticky: discountBean= " + (discountBean == null));
 
-               if (discountBean == null) return;
-
-               String vip_Card_num = discountBean.getVip_card_num();
-               String zhekou_num = discountBean.getZhekou_num();
-               String mian_zhi_num = discountBean.getMianzhi_num();
+                if (discountBean == null) return;
 
 
-               String mian_zhi_max = discountBean.getMianzhi_max();
-               CrashSuper endCrashSuper = null;
-
-               if (totalMoney == 0.00) {
-
-                   if (!TextUtils.isEmpty(zhekou_num) || !TextUtils.isEmpty(mian_zhi_num)) {
+                Log.d(TAG, "onEventsticky: discountBean= " + discountBean.toString());
+                String vip_Card_num = discountBean.getVip_card_num();
+                String zhekou_num = discountBean.getZhekou_num();
+                String mian_zhi_num = discountBean.getMianzhi_num();
 
 
-                       ToastUtils.showShortToast("请先选择商品");
-                       MessageEvent cancelCoupons = new MessageEvent(CANCELCOUPONS2);
+                String mian_zhi_max = discountBean.getMianzhi_max();
+                CrashSuper endCrashSuper = null;
 
-                       EventBus.getDefault().post(cancelCoupons);
-                   }
+                if (totalMoney == 0.00) {
 
-                   return;
-               }
-
-               Log.d(TAG, "onEventsticky: totalMoney= " + totalMoney);
-               NormalCrash normalCrash = new NormalCrash(totalMoney);
-
-               endCrashSuper = normalCrash;
-
-               VipCrashSuper vipCrashSuper = null;
-               ZhekouCrash zhekouCrash = null;
-               MianzhiCrash mianzhiCrash = null;
-               if (!TextUtils.isEmpty(vip_Card_num)) {
-
-                   vip_card = Double.parseDouble(vip_Card_num);
-                   vipCrashSuper = new VipCrashSuper(vip_card * 0.1 + "");
-
-                   vipCrashSuper.attach(normalCrash);
-                   endCrashSuper = vipCrashSuper;
-
-               }
-
-               if (!TextUtils.isEmpty(zhekou_num)) {
+                    if (!TextUtils.isEmpty(zhekou_num) || !TextUtils.isEmpty(mian_zhi_num)) {
 
 
-                   zhekouCrash = new ZhekouCrash(Double.parseDouble(zhekou_num) * 0.1);
+                        ToastUtils.showShortToast("请先选择商品");
+                        MessageEvent cancelCoupons = new MessageEvent(CANCELCOUPONS2);
 
-                   if (vipCrashSuper == null) {
+                        EventBus.getDefault().post(cancelCoupons);
+                    }
 
+                    return;
+                }
 
-                       zhekouCrash.attach(normalCrash);
-
-                   } else {
-                       zhekouCrash.attach(vipCrashSuper);
-
-                   }
-                   endCrashSuper = zhekouCrash;
-
-               }
-               if (!TextUtils.isEmpty(mian_zhi_num)) {
+                if (totalMoney != 0) {
 
 
-                   mianzhiCrash = new MianzhiCrash(Double.parseDouble(mian_zhi_max),
-                           Double.parseDouble(mian_zhi_num));
 
-                   if (vipCrashSuper == null) {
+                    if (!TextUtils.isEmpty(vip_Card_num)) {
+                        rlVip.setVisibility(View.VISIBLE);
+                        vipDiscount.setText("会员优惠: " + vip_Card_num + "折");
 
-
-                       mianzhiCrash.attach(normalCrash);
-
-                   } else {
-                       mianzhiCrash.attach(vipCrashSuper);
-
-                   }
+                    }else{
+                        rlVip.setVisibility(View.GONE);
 
 
-                   endCrashSuper = mianzhiCrash;
-               }
+                    }
+                }
+                Log.d(TAG, "onEventsticky: totalMoney= " + totalMoney);
+                NormalCrash normalCrash = new NormalCrash(totalMoney);
 
-               moneyBean = endCrashSuper.calculateMoney();
-               rlYouhuiquan.setVisibility(View.GONE);
+                endCrashSuper = normalCrash;
 
-               youhuimoney.setText(TextUtils.isEmpty(mian_zhi_num) ? "优惠" + discountBean.getZhekou_num()
-                       + "折" : "优惠" + discountBean.getMianzhi_num()
-                       + "元");
+                VipCrashSuper vipCrashSuper = null;
+                ZhekouCrash zhekouCrash = null;
+                MianzhiCrash mianzhiCrash = null;
+                if (!TextUtils.isEmpty(vip_Card_num)) {
 
-               tvTotalMoney.setText("¥ " + DecimalFormatUtils.doubleToMoneyWithOutSymbol(moneyBean.getEndMoney()));
+                    vip_card = Double.parseDouble(vip_Card_num);
+                    vipCrashSuper = new VipCrashSuper(vip_card * 0.1 + "");
 
+                    vipCrashSuper.attach(normalCrash);
+                    endCrashSuper = vipCrashSuper;
 
-               tvTotalDiscount.setText(DecimalFormatUtils.doubleToMoneyWithOutSymbol(moneyBean.getDiscountMoney()));
+                }
 
-               if (!TextUtils.isEmpty(mian_zhi_num) || !TextUtils.isEmpty(zhekou_num)) {
-                   rlYouhuiquan.setVisibility(View.VISIBLE);
-
-
-               }
-
-               if (moneyBean.isCanDiscount()) {
-
-                   ToastUtils.showShortToast("该优惠券不满足使用条件");
-                   discountBean.setCoupons_id("");
-                   discountBean.setZhekou_num("");
-                   discountBean.setMianzhi_max("");
-                   discountBean.setMianzhi_num("");
-
-                   if (!isPaySucess)
-                       sendOrderListToSecondScreen(SecondScreenInfo.UPDATE);
-                   MessageEvent messageEvent1 = new MessageEvent(CANCELCOUPONS2);
-
-                   EventBus.getDefault().post(messageEvent1);
-               }
+                if (!TextUtils.isEmpty(zhekou_num)) {
 
 
-               Log.d(TAG, "onEventsticky: moneyBean= " + moneyBean.toString() + "" +
-                       "    " + endCrashSuper.toString());
+                    zhekouCrash = new ZhekouCrash(Double.parseDouble(zhekou_num) * 0.1);
+
+                    if (vipCrashSuper == null) {
+
+
+                        zhekouCrash.attach(normalCrash);
+
+                    } else {
+                        zhekouCrash.attach(vipCrashSuper);
+
+                    }
+                    endCrashSuper = zhekouCrash;
+
+                }
+                if (!TextUtils.isEmpty(mian_zhi_num)) {
+
+
+                    mianzhiCrash = new MianzhiCrash(Double.parseDouble(mian_zhi_max),
+                            Double.parseDouble(mian_zhi_num));
+
+                    if (vipCrashSuper == null) {
+
+
+                        mianzhiCrash.attach(normalCrash);
+
+                    } else {
+                        mianzhiCrash.attach(vipCrashSuper);
+
+                    }
+
+
+                    endCrashSuper = mianzhiCrash;
+                }
+
+                moneyBean = endCrashSuper.calculateMoney();
+                rlYouhuiquan.setVisibility(View.GONE);
+
+                youhuimoney.setText(TextUtils.isEmpty(mian_zhi_num) ? "优惠" + discountBean.getZhekou_num()
+                        + "折" : "优惠" + discountBean.getMianzhi_num()
+                        + "元");
+
+
+                tvTotalMoney.setText("￥ " + DecimalFormatUtils.doubleToMoneyWithOutSymbol(moneyBean.getEndMoney()));
+
+
+                tvTotalDiscount.setText(DecimalFormatUtils.doubleToMoneyWithOutSymbol(moneyBean.getDiscountMoney()));
+
+                if (!TextUtils.isEmpty(mian_zhi_num) || !TextUtils.isEmpty(zhekou_num)) {
+                    rlYouhuiquan.setVisibility(View.VISIBLE);
+
+
+                }
+
+                if (moneyBean.isCanDiscount()) {
+
+                    ToastUtils.showShortToast("该优惠券不满足使用条件");
+                    discountBean.setCoupons_id("");
+                    discountBean.setZhekou_num("");
+                    discountBean.setMianzhi_max("");
+                    discountBean.setMianzhi_num("");
+
+                    if (!isPaySucess)
+                        sendOrderListToSecondScreen(SecondScreenInfo.UPDATE);
+                    MessageEvent messageEvent1 = new MessageEvent(CANCELCOUPONS2);
+
+                    EventBus.getDefault().post(messageEvent1);
+                }
+
+
+                Log.d(TAG, "onEventsticky: moneyBean= " + moneyBean.toString() + "" +
+                        "    " + endCrashSuper.toString());
            /* if (!TextUtils.isEmpty(vip_Card_num)){
 
                 vip_card = Double.parseDouble(vip_Card_num)*0.1;
@@ -2776,17 +3276,17 @@ try {
 
             }*/
 
-               if (!isPaySucess)
-                   sendOrderListToSecondScreen(SecondScreenInfo.UPDATE);
+                if (!isPaySucess)
+                    sendOrderListToSecondScreen(SecondScreenInfo.UPDATE);
 
 
-           }
-           if (messageEvent.getType().equals(CANCELCOUPONS1)) {
+            }
+            if (messageEvent.getType().equals(CANCELCOUPONS1)) {
 
 
-               rlYouhuiquan.setVisibility(View.GONE);
+                rlYouhuiquan.setVisibility(View.GONE);
 
-           }
+            }
 
         /* if (messageEvent.getType().equals("allDelete")){
 
@@ -2795,63 +3295,576 @@ try {
          }*/
 
 
-           if (messageEvent.getType().equals("client_info")) {
+            if (messageEvent.getType().equals("client_info")) {
 
 
-               //在支付完成后会置空会员信息
-               vipInfo = new VipInfo();
-               String msg = messageEvent.getClientinfo();
-               if (TextUtils.isEmpty(msg)) {
+                //在支付完成后需要置空会员信息
+                vipInfo = new VipInfo();
+                String msg = messageEvent.getClientinfo();
+                if (TextUtils.isEmpty(msg)) {
 
-                   return;
-               }
-               try {
-                   JSONObject jsonObject = new JSONObject(msg);
+                    return;
+                }
+                try {
+                    JSONObject jsonObject = new JSONObject(msg);
 
-                   JSONObject jsonObject1 = jsonObject.getJSONObject("base_info");
-                   JSONObject blance = jsonObject.optJSONObject("balance");
+                    JSONObject jsonObject1 = jsonObject.getJSONObject("base_info");
+                    JSONObject blance = jsonObject.optJSONObject("balance");
 
-                   if (blance!=null){
+                    if (blance == null) {
 
-                       user_id = jsonObject1.optString("id");
+                        //这里如果为空 说明是根据手机号进行的登录，不能进行余额支付
+                        isCanBalancePay = false;
+                    }
 
+                    if (blance != null) {
+
+
+                        //JsonObject jsonObjectBalance = new JsonObject(blance);
+
+                        vipInfo.setAccount(blance.optString("total_amount") + "");
+                        user_id = jsonObject1.optString("id");
+
+                        isCanBalancePay = true;
+                    }
+
+                    Log.d(TAG, "onEventsticky: jsonObject1= " + jsonObject1.toString());
+                    //这里用来发送给副屏
+                    vipInfo.setMobile(jsonObject1.getString("mobile"));
+                    vipInfo.setName(jsonObject1.getString("nickname"));
+
+                    sendOrderListToSecondScreen(SecondScreenInfo.ADD_VIP_INFO);
+
+
+                } catch (JSONException e) {
+                }
+
+
+            }
+
+            if (messageEvent.getType().equals("remove_vip")) {
+
+
+                //取消会员卡显示
+                rlVip.setVisibility(View.GONE);
+                vipInfo = null;
+                user_id = "";
+                isCanBalancePay = false;
+                balancePayBean = null;
+                mOrderbean = null;
+                Log.d(TAG, "onEventsticky: remove_vip");
+                sendOrderListToSecondScreen(SecondScreenInfo.REMOVE_VIP_INFO);
+            }
+
+
+            EventBus.getDefault().removeAllStickyEvents();
+        } catch (Exception e) {
+
+            Log.d(TAG, "onEventsticky: e= " + e.getMessage());
+
+            App.store.put("error  ", " e= " + e.getMessage().toString());
+            App.store.commit();
+        }
+
+    }
+
+    /**
+     * 储值卡充值
+     *
+     * @param auth_code*/
+    private void goToRecharge(String auth_code) {
+
+        Log.d(TAG, "goToRecharge: ");
+        isComingRecharge = false;
+        isRechargePay = true;
+
+        if(!NetWorkUtils.isNetWorkAvaiable(getActivity())){
+
+
+            ToastUtils.showShortToast("当前网络不可用!");
+        }else{
+
+            if (payTipsDialog!=null){
+
+                payTipsDialog.dismiss();
+            }
+
+
+            payTipsDialog = new Dialog(getActivity(),R.style.CustomDialog);
+            payTipsDialog.setCanceledOnTouchOutside(false);
+            payTipsDialog.setCancelable(false);
+            payTipsDialog.setContentView(R.layout.layout_waiting_scan_pay);
+            //payTipsDialog.show();
+
+        }
+
+       /* MessageEvent messageEvent = new MessageEvent(MessageEvent.PAY_NOT_SCROLL);
+        EventBus.getDefault().post(messageEvent);*/
+
+        //保存到本地
+        //支付前先保存
+
+        rechargeOrderBean.setIsauto("0");
+        rechargeOrderBean.setIspay("0");
+        boolean isSaveOK = rechargeOrderBean.save();
+
+        //没有入库成功就提示重新支付
+        if (!isSaveOK){
+
+            ToastUtils.showShortToast("支付失败，请重新支付！");
+
+           /* if (payTipsDialog!=null){
+
+                payTipsDialog.dismiss();
+
+            }*/
+
+            return;
+        }
+        Log.d(TAG, "goToRecharge: isSaveOK= "+isSaveOK);
+
+        try {
+
+            String url = App.API_URL + "ptfw/cashier/do-pay";
+
+            Map<String, String> stringMap = new HashMap<>();
+            stringMap.put("order_no", rechargeOrderBean.getOrder_no());
+            //stringMap.put("amount", "0.01");
+            stringMap.put("amount", rechargeOrderBean.getAmount());
+            stringMap.put("terminal_no", DeviceUtils.getDeviceSN());
+
+            Log.d(TAG, "sendPay: mOrderbean= " + rechargeOrderBean.toString());
+//        stringMap.put("amount", tvTotalMoney.getText().toString());
+
+            if (auth_code.substring(0, 2).contains("10") || auth_code.substring(0, 2).contains("11") || auth_code.substring(0, 2).contains("12") || auth_code.substring(0, 2).contains("13") || auth_code.substring(0, 2).contains("14") || auth_code.substring(0, 2).contains("15")) {
+                payment_id = "1";
+                payType = "010";
+
+            } else if (auth_code.substring(0, 2).contains("28")) {
+                payment_id = "2";
+                payType = "020";
+
+            }
+
+            //mOrderbean.setPayment_id(payment_id);
+           // mOrderbean.setPayType(payType);
+            //mOrderbean.saveAsync();
+            stringMap.put("pay_type", payType);
+            stringMap.put("auth_code", auth_code);
+            stringMap.put("terminal_no", DeviceUtils.getDeviceSN());
+
+
+            Xutils.getInstance().post(url, stringMap, new Xutils.XCallBack() {
+                @Override
+                public void onResponse(String str) {
+                    try {
+                        Log.d(TAG, "onResponse: str= " + str);
+                       // isgoto=true;
+                        // ToastUtils.showShortToast(str);
+                       // App.store.put("test123", str);
+                       // App.store.commit();
+
+
+
+                       /* if(NetWorkUtils.isNetWorkAvaiable(getActivity())){
+
+
+
+                        }else{
+
+                            ToastUtils.showShortToast("当前网络不可用！");
+                        }*/
+
+                        //dialog.dismiss();
+                        JSONObject mjsonObjects = new JSONObject(str);
+                        String result = mjsonObjects.getString("status");
+                        String message = mjsonObjects.getString("message");
+                        if (result.equals("true")) {
+
+                            JSONObject jsonObject = mjsonObjects.getJSONObject("data");
+
+                            out_trade_no = jsonObject.getString("out_trade_no");
+
+                            // ToastUtils.showShortToast(out_trade_no);
+
+                            rechargeOrderBean.setTrade_no(out_trade_no);
+                            //支付时间
+                            rechargeOrderBean.setPay_at(TimeUtils.getCurrentPhpTimeStamp());
+                            rechargeOrderBean.setPayType(payType);
+                            rechargeOrderBean.setPayment_id(payment_id);
+
+                           boolean isSucess = rechargeOrderBean.save();
+                            payTipsDialogFragment = PayTipsDialogFragment.getInstance(PayTipsDialogFragment.RECHARGE,out_trade_no,payType);
+                            payTipsDialogFragment.show(getFragmentManager(),"payTips");
+                            payTipsDialogFragment.setOnQueryListener(Left_crashier_fragment.this);
+
+
+                          /* PayTipsDialogFragment payTipsDialogFragment = PayTipsDialogFragment.getInstance(PayTipsDialogFragment.RECHARGE,out_trade_no,payType);
+
+                           payTipsDialogFragment.show(getFragmentManager(),"patTips");
+
+                           payTipsDialogFragment.setOnQueryListener(Left_crashier_fragment.this);
+
+                           payTipsDialogFragment.setTradeInfo(out_trade_no,payType);*/
+
+
+                            Log.d(TAG, "onResponse: rechargeOrderBean isSucess= "+isSucess);
+                            if (mjsonObjects.getJSONObject("data").getString("result_code").equals("01")) {
+                                //第三方支付成功，去掉对话框
+                                //payTipsDialog.dismiss();
+
+                                if (payTipsDialogFragment!=null){
+
+                                    getFragmentManager().beginTransaction()
+                                            .detach(payTipsDialogFragment)
+                                            .commit();
+                                }
+                                //支付成功取消充值余额的标志
+                                isRecharge = false;
+
+                                rechargePrint();
+                       
+
+                            } else if (mjsonObjects.getJSONObject("data").getString("result_code").equals("02")) {
+
+
+                                if (payTipsDialogFragment!=null){
+
+                                    getFragmentManager().beginTransaction()
+                                            .detach(payTipsDialogFragment)
+                                            .commit();
+                                }
+                                /*if(payTipsDialog!=null){
+
+                                    payTipsDialog.dismiss();
+                                }*/
+                                /*if (payTipsDialogFragment!=null){
+
+                                    payTipsDialogFragment.getDialog().dismiss();
+                                }*/
+
+                                isComingRecharge = true;
+
+                                ToastUtils.showShortToast("支付失败，请重新充值!");
+
+                                //  Hint.Short(getActivity(), mjsonObjects.getJSONObject("data").getString("return_msg"));
+                            } else if (mjsonObjects.getJSONObject("data").getString("result_code").equals("03")) {
+
+                               // payTipsDialogFragment.setTradeInfo(out_trade_no,payType);
+
+                                //  ToastUtils.showShortToast("onResponse: 开始轮训");
+                                Log.d(TAG, "onResponse: 开始轮训");
+                                rechargeOrderBean.setQuery_order("0");
+                                rechargeOrderBean.save();
+                                //    ToastUtils.showShortToast("03");
+
+                                handlerRecharge.removeCallbacks(runnableRecharge);
+                                number = 1;
+
+                                handlerRecharge.postDelayed(runnableRecharge, 1000);//每一秒执行一次runnable。
+
+
+                              /*  Observable.intervalRange(0,15,1,5,TimeUnit.SECONDS)
+                                        .subscribeOn(Schedulers.newThread())
+
+                                        .map(new Function<Long, String>() {
+                                            @Override
+                                            public String apply(Long aLong) throws Exception {
+
+
+
+
+
+
+                                                return null;
+                                            }
+                                        })
+                                        .observeOn(AndroidSchedulers.mainThread())
+
+                                        .subscribe(new Observer<String>() {
+                                            @Override
+                                            public void onSubscribe(Disposable d) {
+
+                                            }
+
+                                            @Override
+                                            public void onNext(String aLong) {
+
+                                            }
+
+                                            @Override
+                                            public void onError(Throwable e) {
+
+                                            }
+
+                                            @Override
+                                            public void onComplete() {
+
+                                            }
+                                        });*/
+
+                            }
+
+
+                        } else {
+                            //失败也取消
+                            //payTipsDialog.dismiss();
+
+                            isComingRecharge = true;
+                            if (payTipsDialogFragment!=null){
+
+                                getFragmentManager().beginTransaction()
+                                        .detach(payTipsDialogFragment)
+                                        .commit();
+
+                                isComingRecharge = true;
+                            }
+
+                            Hint.Short(getActivity(), message);
+                        }
+
+
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+
+                }
+
+                @Override
+                protected Object clone() throws CloneNotSupportedException {
+                    isgoto=true;
+                    return super.clone();
+
+                }
+
+            });
+        } catch (Exception e) {
+            isgoto=true;
+            App.store.put("exception1", e.getMessage() + "  " + e.getCause());
+            App.store.commit();
+
+        }
+
+
+    }
+
+    private void rechargePrint() {
+        isComingRecharge = true;
+
+        try {
+            Log.d(TAG, "printOrder: 11");
+
+
+            //支付成功 设置状态
+            rechargeOrderBean.setIspay("1");
+           // rechargeOrderBean.save();
+
+
+            try {
+
+
+                rechargeOrderBean.setPay_at(TimeUtils.getCurrentPhpTimeStamp());
+
+                rechargeOrderBean.setFinish_time(TimeUtils.getCurrentPhpTimeStamp());
+
+                //支付完成保存
+                rechargeOrderBean.save();
+
+                //同步订单
+                uploadRechargeDateToServe(rechargeOrderBean);
+
+                //得到打印信息
+                rechargePrint = getRechargePrint();
+
+               // printInfoBean = getPrintInfoBean(type);
+                Log.d(TAG, "printOrder: before ");
+
+/*
+                MessageEvent messageEvent = new MessageEvent(MessageEvent
+                .RECHARGE_PRINT);
+                messageEvent.setRechargePrint(rechargePrint);
+                EventBus.getDefault().post(messageEvent);*/
+
+                singlePrintRecharge(rechargePrint);
+                Log.d(TAG, "printOrder: before showPaySucessLayout");
+
+                ((MainActivity) activity).showPaySucessLayout();
+
+
+                MessageEvent messageEvent = new MessageEvent(MessageEvent.RECHARGE_PAY_SUCESS);
+
+                Bundle bundle = new Bundle();
+                bundle.putParcelable(MessageEvent.RECHARGE_PAY_SUCESS,rechargePrint);
+
+                messageEvent.setBundle(bundle);
+
+                EventBus.getDefault().post(messageEvent);
+
+
+                //sendOrderDetailToSucessLayout(mOrderbean);
+
+                //设置支付完成时间与订单完成时间
+
+
+               // uploadDateToServe(mOrderbean);
+
+                //isPaySucess = true;
+
+                MessageEvent messageEventSucess = new MessageEvent("paySucess");
+
+                EventBus.getDefault().post(messageEventSucess);
+
+                MessageEvent messageEvent2 = new MessageEvent("allDelete");
+
+                EventBus.getDefault().post(messageEvent2);
+
+
+                //打印
+                //singlePrint(printInfoBean);
+
+            } catch (Exception e) {
+
+                e.printStackTrace();
+
+                Log.d(TAG, "printOrder: e= " + e.getMessage());
+            }
+
+        }catch (Exception e){
+
+
+        }
+
+
+
+
+
+
+    }
+
+    private RechargePrint getRechargePrint() {
+
+
+
+        RechargePrint rechargePrint = new RechargePrint();
+
+        String store = App.store.getString("storeinfo");
+        try {
+            storeinfo = new JSONObject(store);
+
+            rechargePrint.setStoreName(storeinfo.getString("name"));
+
+
+            rechargePrint.setType("储值订单");
+
+            rechargePrint.setOrderNo(rechargeOrderBean.getOrder_no());
+            Date date = new Date();
+            SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
+            //printInfoBean.setOrderTime(format.format(date));
+
+            rechargePrint.setTime(format.format(Double.parseDouble(rechargeOrderBean.getFinish_time()+"000")));
+
+
+            rechargePrint.setRechargeCardName(rechargeOrderBean.getValueCardBean().getRecharge_name());
+
+            rechargePrint.setRechargeMoney(rechargeOrderBean.getValueCardBean().getSell_price());
+            rechargePrint.setRechargeReward(rechargeOrderBean.getValueCardBean().getEntity());
+
+            rechargePrint.setBalanceTotalCanGet(DecimalFormatUtils.doubleToMoneyWithOutSymbol(Double.parseDouble(rechargeOrderBean
+            .getValueCardBean().getSell_price())+Double.parseDouble(rechargeOrderBean
+            .getValueCardBean().getEntity())));
+
+            rechargePrint.setTotalAmount(rechargeOrderBean.getAmount());
+            rechargePrint.setPayType(payType);
+
+            rechargePrint.setMobile(vipInfo.getMobile());
+
+
+            Log.d(TAG, "getRechargePrint: ValueCardBean= "+rechargeOrderBean.getValueCardBean()
+            .toString());
+
+
+            Log.d(TAG, "getRechargePrint: ");
+
+            Log.d(TAG, "getRechargePrint: vipInfo= "+(vipInfo==null) +"vipiNDO= "+
+            vipInfo.toString()
+            );
+           double preAccount = Double.parseDouble(vipInfo.getAccount());
+
+           double d1 = Double.parseDouble(rechargeOrderBean
+                   .getValueCardBean().getSell_price());
+
+           double d2 = Double.parseDouble(rechargeOrderBean
+                   .getValueCardBean().getEntity());
+
+            Log.d(TAG, "getRechargePrint: preAccount= "+preAccount+" d1= "+d1
+            +" d2= "+d2);
+            double total = Double.parseDouble(vipInfo.getAccount())+
+                    Double.parseDouble(rechargeOrderBean
+                    .getValueCardBean().getSell_price())+
+                    Double.parseDouble(rechargeOrderBean
+                    .getValueCardBean().getEntity());
+
+            Log.d(TAG, "getRechargePrint: total= "+total);
+            rechargePrint.setBalance_total(total+"");
+
+
+        } catch (JSONException e) {
+            e.printStackTrace();
+            Log.d(TAG, "getRechargePrint: e= "+e.getMessage());
+        }
+
+
+        return rechargePrint;
+
+
+    }
+
+
+    private void uploadRechargeDateToServe(RechargeOrderBean rechargeOrderBean) {
+
+
+   if (rechargeOrderBean!=null){
+
+
+       if (payModel==null){
+
+           payModel = new PayModel();
+       }
+       payModel.uploadRechargeOrder(rechargeOrderBean.getOrder_no(), rechargeOrderBean.getUser_id(), rechargeOrderBean.getPayment_id(), rechargeOrderBean.getTrade_no(), new NetWorkCallBack2() {
+                   @Override
+                   public void onStart() {
 
                    }
 
-                   Log.d(TAG, "onEventsticky: jsonObject1= "+jsonObject1.toString());
-                  //这里用来发送给副屏
-                   vipInfo.setMobile(jsonObject1.getString("mobile"));
-                   vipInfo.setName(jsonObject1.getString("nickname"));
-                   sendOrderListToSecondScreen(SecondScreenInfo.ADD_VIP_INFO);
+                   @Override
+                   public void onSucess(Object data) {
 
+                       Log.d(TAG, "onSucess: ");
 
+                       rechargeOrderBean.setIsauto("1");
 
-               } catch (JSONException e) {
+                       //同步完成 状态为1
+                       rechargeOrderBean.save();
+                   }
+
+                   @Override
+                   public void onFailed(String msg) {
+
+                      // ToastUtils.showShortToast(msg);
+                   }
                }
+       );
 
 
-           }
 
-           if (messageEvent.getType().equals("remove_vip")) {
+   }
 
-               vipInfo = null;
-               user_id = "";
-               balancePayBean = null;
-               Log.d(TAG, "onEventsticky: remove_vip");
-               sendOrderListToSecondScreen(SecondScreenInfo.REMOVE_VIP_INFO);
-           }
 
-           EventBus.getDefault().removeAllStickyEvents();
-       }catch (Exception e){
 
-           Log.d(TAG, "onEventsticky: e= "+e.getMessage());
-
-           App.store.put("error  "," e= "+e.getMessage().toString());
-           App.store.commit();
-       }
 
     }
-    private  Double string2Double(String nub){
+
+    private Double string2Double(String nub) {
         Double cny = Double.parseDouble(nub);//6.2041    这个是转为double类型
         DecimalFormat df = new DecimalFormat("0.00");
         String CNY = df.format(cny); //6.20   这个是字符串，但已经是我要的两位小数了
@@ -2861,21 +3874,20 @@ try {
     }
 
 
-    @Subscribe(threadMode = ThreadMode.MAIN ,priority = 1)
+    @Subscribe(threadMode = ThreadMode.MAIN, priority = 1)
 
-    public void onEventPriorityLow(MessageEvent messageEvent){
+    public void onEventPriorityLow(MessageEvent messageEvent) {
 
 
-        if (messageEvent.getType().equals("paySucess")){
+        if (messageEvent.getType().equals("paySucess")) {
 
             sendOrderListToSecondScreen(SecondScreenInfo.PAYSUCESS);
         }
 
 
-
     }
 
-    @Subscribe(threadMode = ThreadMode.MAIN,priority = 10)
+    @Subscribe(threadMode = ThreadMode.MAIN, priority = 10)
     public void onEvent(MessageEvent messageEvent) {
         Log.d(TAG, "onEvent: Left_crashier_fragment");
         if (messageEvent.getType().equals("update")) {
@@ -2886,7 +3898,7 @@ try {
             int number;
             goodsBean = messageEvent.getGoodsBean();
 
-            Log.d(TAG, "onEvent: goodBean= "+goodsBean.toString());
+            Log.d(TAG, "onEvent: goodBean= " + goodsBean.toString());
             if (goodsBean != null) {
 
                 if (goodsSelectMap.get(goodsBean.getGoodsId()) == null) {
@@ -2909,14 +3921,13 @@ try {
                     } else if (goodsBean.getChangeType().equals("countChange")) {
                         number = goodsBean.getNumber();
                         goodsBean.setChangeType("");
-                    }else{
+                    } else {
                         number++;
 
 
                     }
 
                 }
-
 
 
                 goodsSelectMap.put(goodsBean.getGoodsId(), number);
@@ -2934,46 +3945,70 @@ try {
                 }*/
 
 
-
                 goodsBean.setNumber(goodsSelectMap.get(goodsBean.getGoodsId()));
             }
 
 
-
-
-
             //去更新集合
-            updateSelectedGoodsWithType(goodsBean,type);
+            updateSelectedGoodsWithType(goodsBean, type);
 
             //去更新应收金额有两个地方 商品选择数量变化时与删除商品时
 
             updateTotalMoney();
 
 
-        }else if (messageEvent.getType().equals("allDelete")){
+        } else if (messageEvent.getType().equals("allDelete")) {
 
             moneyBean = null;
             discountBean = null;
             allDelete();
 
-        }
-
-        else if (messageEvent.getType().equals("cancelAllDelete")){
+        } else if (messageEvent.getType().equals("cancelAllDelete")) {
 
             Log.d(TAG, "onEvent: cancelCollection 111");
             setCancelAndClooectionEnable(true);
 
-        }else if (messageEvent.getType().equals("cancelCollection")){
+
+        }
+        else if (messageEvent.getType().equals(MessageEvent.ORDER_FINISH)){
+
+            printInfoBean = null;
+            rechargePrint = null;
+        }
+
+
+        //点击取消收款
+        else if (messageEvent.getType().equals(MessageEvent.CANCELCOLLECTION)) {
+
+
+            Log.d(TAG, "123"+Log.getStackTraceString(new
+                    Throwable()));
+
+
+            //取消收款也需要设为false
+            isRecharge = false;
+
+            //tvTotalMoney.setText("￥ " + totalMoney);
+
             Log.d(TAG, "onEvent: cancelCollection 2222");
             //说明是混合支付
-            if (mOrderbean.getUse_wallet()==1){
+            if (mOrderbean != null && mOrderbean.getUse_wallet() == 1) {
 
+                DialogUtils.createDialog(getActivity());
+                //退回扣除的余额钱
                 payModel.cancelOrder(mOrderbean.getOrder(), new NetWorkCallBack() {
                     @Override
                     public void onSucess(Object data) {
 
+                        DialogUtils.cancelDialog();
+
                         ToastUtils.showShortToast("退款成功！");
                         //这里是当支付界面三个页面任一个页面点击取消订单
+
+                        MessageEvent messageEvent = new MessageEvent(MessageEvent.CANCEL_ORDER_INFO);
+
+                        EventBus.getDefault().post(messageEvent);
+
                         setCancelAndClooectionEnable(true);
 
                         ((MainActivity) activity).showRightCrashierLayout();
@@ -2987,15 +4022,18 @@ try {
                     @Override
                     public void onFailed(String msg) {
 
+                        DialogUtils.cancelDialog();
+
                         ToastUtils.showShortToast(msg);
                     }
                 });
 
-            }else{
+            } else {
 
                 //这里是当支付界面三个页面任一个页面点击取消订单
                 setCancelAndClooectionEnable(true);
                 ((MainActivity) activity).showRightCrashierLayout();
+
                 sendOrderListToSecondScreen(SecondScreenInfo.CANCELPAY);
 
                 MessageEvent messageEvent2 = new MessageEvent("ThridisPay");
@@ -3004,32 +4042,32 @@ try {
             }
 
 
-        }else if(messageEvent.getType().equals("pendingOrder")){
+        } else if (messageEvent.getType().equals("pendingOrder")) {
 
 
             //目前只支持挂一单
-            if (pendOrderId>=1){
+            if (pendOrderId >= 1) {
 
                 return;
             }
 
-            if (!selectedGoodsMap.isEmpty()){
+            if (!selectedGoodsMap.isEmpty()) {
                 //因为map不是值传递,所以要进行深拷贝
                 Map<String, goodsBean> selectedGoodsMap2 = new HashMap<>();
 
-                goodsBean goodsBean ;
-                for (Map.Entry<String, goodsBean>map:
-                     selectedGoodsMap.entrySet()) {
+                goodsBean goodsBean;
+                for (Map.Entry<String, goodsBean> map :
+                        selectedGoodsMap.entrySet()) {
                     goodsBean = map.getValue();
 
-                    selectedGoodsMap2.put(map.getKey(),map.getValue());
+                    selectedGoodsMap2.put(map.getKey(), map.getValue());
                 }
 
                 //selectedGoodsMap2.putAll(selectedGoodsMap);
                 Log.d(TAG, "onEvent: putall");
 
-                for (Map.Entry<String,goodsBean>item:
-                     selectedGoodsMap.entrySet()) {
+                for (Map.Entry<String, goodsBean> item :
+                        selectedGoodsMap.entrySet()) {
 
                     selectedGoodsMap2.put(item.getKey(),
                             (com.qimai.xinlingshou.bean.goodsBean) deepClone(item.getValue()));
@@ -3059,34 +4097,41 @@ try {
                 allDelete();
 
 
-
-
                 messageEvent = new MessageEvent("pendingOrderSucess");
 
                 messageEvent.setTypeInt(pendOrderId);
                 EventBus.getDefault().post(messageEvent);
 
                 sendOrderListToSecondScreen(SecondScreenInfo.PENDINGORDERSUCESS);
-               // pendOrderId = 0;
+                // pendOrderId = 0;
                 pendOrderId++;
             }
 
 
+        } else if (messageEvent.getType().equals("takeOrder")) {
 
-        }else if (messageEvent.getType().equals("takeOrder")){
 
-
-           // ToastUtils.showShortToast("take order");
+            // ToastUtils.showShortToast("take order");
             showPendingOrder(messageEvent.getTypeInt());
 
-        }else if (messageEvent.getType().equals(MessageEvent.REPEATPRINT)){
+        } else if (messageEvent.getType().equals(MessageEvent.REPEATPRINT)) {
 
 
-           // printOrder(oldType,oldAddInfo);
+            // printOrder(oldType,oldAddInfo);
 
             try {
+
+                if (isRechargePay){
+
+                   singlePrintRecharge(rechargePrint);
+
+                }else
+                {
+
                 singlePrint(printInfoBean);
-            } catch (JSONException e) {
+            }
+            }catch (JSONException e) {
+                Log.d(TAG, "onEvent: e= "+e.getMessage());
                 e.printStackTrace();
             }
         }
@@ -3097,24 +4142,22 @@ try {
 
 
         //ToastUtils.showShortToast("take order typeInt= "+typeInt);
-        Log.d(TAG, "showPendingOrder: pendOrder size= "+pendOrderMap.isEmpty()
+        Log.d(TAG, "showPendingOrder: pendOrder size= " + pendOrderMap.isEmpty()
 
-        +" typeId= "+typeInt);
+                + " typeId= " + typeInt);
         Map<String, goodsBean> orderMap = pendOrderMap.get(typeInt);
 
 
         //updateSelectedGoods();
 
 
-
-
         //ToastUtils.showShortToast("take order typeInt= isEmpty= "+orderMap.isEmpty());
 
         if (!orderMap.isEmpty()) {
             allDelete();
-            for (Map.Entry<String, goodsBean> goodsBean1:
-                 orderMap.entrySet()) {
-                Log.d(TAG, "showPendingOrder: "+(goodsBean1.getValue()==goodsBean));
+            for (Map.Entry<String, goodsBean> goodsBean1 :
+                    orderMap.entrySet()) {
+                Log.d(TAG, "showPendingOrder: " + (goodsBean1.getValue() == goodsBean));
                /* selectedGoodsMap.clear();
                 goodsSelectMap.clear();
 
@@ -3155,6 +4198,7 @@ try {
 
 
     }
+
     public static String formatStr2(String str) {
 
 
@@ -3174,6 +4218,7 @@ try {
 
 
     }
+
     public static int strlen(String str) {
 
         if (str == null) {
@@ -3189,56 +4234,56 @@ try {
      */
     public void updateTotalMoney() {
 
-        if (selectedGoodsArrayList!=null&&selectedGoodsArrayList.size()!=0){
+        if (selectedGoodsArrayList != null && selectedGoodsArrayList.size() != 0) {
             totalMoney = 0.00;
             Log.d(TAG, "updateTotalMoney: ");
-           setCancelAndClooectionEnable(true);
-            for (goodsBean goods:
-                 selectedGoodsArrayList) {
-                totalMoney+=goods.getPrice()*goods.getNumber();
-                Log.d(TAG, "updateTotalMoney: price= "+goods.getPrice()+" number= "+
-                goods.getNumber()+" totalMoney= "+totalMoney);
+            setCancelAndClooectionEnable(true);
+            for (goodsBean goods :
+                    selectedGoodsArrayList) {
+                totalMoney += goods.getPrice() * goods.getNumber();
+                Log.d(TAG, "updateTotalMoney: price= " + goods.getPrice() + " number= " +
+                        goods.getNumber() + " totalMoney= " + totalMoney);
                 tvTotalMoney.setText(DecimalFormatUtils.doubleToMoney(totalMoney));
             }
             //totalMoney = 0.00;
 
-        }else{
+        } else {
 
             totalMoney = 0.00;
 
             setCancelAndClooectionEnable(false);
 
-            tvTotalMoney.setText("¥ "+totalMoney);
+            tvTotalMoney.setText("￥ " + totalMoney);
             tvTotalDiscount.setText("0.0");
 
 
         }
 
-        if (totalMoney!=0.00){
+        if (totalMoney != 0.00) {
 
             MessageEvent messageEvent = new MessageEvent(UPDATEDISCOUNT);
 
             EventBus.getDefault().post(messageEvent);
 
         }
-        if (totalMoney==0.00){
+        if (totalMoney == 0.00) {
             MessageEvent messageEvent = new MessageEvent(CANCELCOUPONS2);
 
             EventBus.getDefault().post(messageEvent);
 
         }
-            long imgsMenuTaskId = (long) SharePreferenceUtil.getParam(getActivity(), imgsKey, 0L);
-            checkImgsMenuExists(imgsMenuTaskId);
+        long imgsMenuTaskId = (long) SharePreferenceUtil.getParam(getActivity(), imgsKey, 0L);
+        //  checkImgsMenuExists(imgsMenuTaskId);
 
 
-            if (!isPaySucess) {
-                sendOrderListToSecondScreen(SecondScreenInfo.UPDATE);
+        if (!isPaySucess) {
+            sendOrderListToSecondScreen(SecondScreenInfo.UPDATE);
 
-            }
-            Log.d(TAG, "updateTotalMoney: sendOrderListToSecondScreen");
-            MessageEvent messageEvent = new MessageEvent(MessageEvent.SELECT_GOODS);
+        }
+        Log.d(TAG, "updateTotalMoney: sendOrderListToSecondScreen");
+            /*MessageEvent messageEvent = new MessageEvent(MessageEvent.SELECT_GOODS);
             messageEvent.setGoodsBeanArrayList(selectedGoodsArrayList);
-            EventBus.getDefault().post(messageEvent);
+            EventBus.getDefault().post(messageEvent);*/
     }
 
     @Override
@@ -3250,9 +4295,9 @@ try {
 
     private void checkImgsMenuExists(final long taskId) {
 //        Hint.Short(getActivity(),"taskId---->" + taskId);
-       // sendImgsMenu();
+        // sendImgsMenu();
         if (taskId < 0) {
-          //  sendImgsMenu();
+            //  sendImgsMenu();
             return;
         }
 
@@ -3260,27 +4305,27 @@ try {
             @Override
             public void onCheckFail() {
                 Log.d(TAG, "onCheckFail: ------->file is not exist");
-                Hint.Short(getActivity(),"onCheckFail: ------->file is not exist");
-               // sendImgsMenu();
+                Hint.Short(getActivity(), "onCheckFail: ------->file is not exist");
+                // sendImgsMenu();
             }
 
             @Override
             public void onResult(boolean exist) {
                 if (exist) {
                     Log.d(TAG, "onResult: ---------->file is exist");
-                   // Hint.Short(getActivity(),"发送轮播图失败---->" + "file is exist");
+                    // Hint.Short(getActivity(),"发送轮播图失败---->" + "file is exist");
                     showImgsMenu(taskId);
                 } else {
-                   // Hint.Short(getActivity(),"发送轮播图失败---->" + "file is not exist");
+                    // Hint.Short(getActivity(),"发送轮播图失败---->" + "file is not exist");
                     Log.d(TAG, "onResult: --------->file is not exists");
-                   // sendImgsMenu();
+                    // sendImgsMenu();
                 }
             }
         });
     }
 
-        private void sendImgsMenu(String path) {
-            Log.d(TAG, "sendImgsMenu: fileName= "+path);
+    private void sendImgsMenu(String path) {
+        Log.d(TAG, "sendImgsMenu: fileName= " + path);
            /* mDSKernel.sendFile("com.example.niu.myapplication",
                   path
                     , new ISendCallback() {
@@ -3333,14 +4378,13 @@ try {
                 public void onSendProcess(String path, long totle, long sended) {
                 }
             });*/
-        }
+    }
 
 
-
-    private void sendOrderListToSecondScreen(final String type){
-
+    private void sendOrderListToSecondScreen(final String type) {
 
 
+        CopyOnWriteArrayList<goodsBean> copyOnWriteArrayList = new CopyOnWriteArrayList(selectedGoodsArrayList);
 
 
 
@@ -3353,10 +4397,9 @@ try {
 
             type = SecondScreenInfo.UPDATE;
         }*/
-        //Intent intent = new Intent("test.data");
+        //Intent intent = new Intent("select_enable_disenable.data");
 
         // getActivity().sendBroadcast(intent);
-
 
 
         //利用线程池节省频繁创建线程
@@ -3365,34 +4408,34 @@ try {
                     @Override
                     public void run() {
 
-                        DataPacket packet1 = UPacketFactory.
+                       /* DataPacket packet1 = UPacketFactory.
                                 buildShowText("com.example.niu.myapplication",
-                                        "hello world",null);
+                                        "hello world",null);*/
                         // mDSKernel.sendData(packet1);
 
 
-                        Log.d(TAG, "sendOrderListToSecondScreen: ispaySucess= "+isPaySucess);
+                        Log.d(TAG, "sendOrderListToSecondScreen: ispaySucess= " + isPaySucess);
                         SecondScreenInfo secondScreenInfo = new SecondScreenInfo();
                         secondScreenInfo.setType(type);
                         //secondScreenInfo.setTotalCostMoney(tvTotalMoney.getText().toString());
-                        secondScreenInfo.setTotalCostMoney(totalMoney+"");
+                        secondScreenInfo.setTotalCostMoney(totalMoney + "");
                         secondScreenInfo.setTotalDiscountMoney(tvTotalDiscount.getText().toString());
 
                         String totalMoney1 = tvTotalMoney.getText().toString();
-                        if (totalMoney1.contains("¥")){
-                            Log.d(TAG, "onViewClicked1: before totalMoney1= "+totalMoney1);
+                        if (totalMoney1.contains("￥")) {
+                            Log.d(TAG, "onViewClicked1: before totalMoney1= " + totalMoney1);
 
-                            totalMoney1 = totalMoney1.replace("¥ ","");
+                            totalMoney1 = totalMoney1.replace("￥ ", "");
 
 
-                            Log.d(TAG, "onViewClicked1: after totalMoney1= "+totalMoney1);
+                            Log.d(TAG, "onViewClicked1: after totalMoney1= " + totalMoney1);
                         }
                         secondScreenInfo.setUser_need_pay(totalMoney1);
 
                         secondScreenInfo.setPayMethod(payMethod);
 
                         //只有现金支付才需要传
-                        if (payMethod==1&&isPaySucess) {
+                        if (payMethod == 1 && isPaySucess) {
 
 
                             secondScreenInfo.setAcual_collect_money(acual_collect_money);
@@ -3400,44 +4443,44 @@ try {
                         }
 
 
-                        if (moneyBean!=null) {
-                            secondScreenInfo.setTotalActualPay((totalMoney-moneyBean.getDiscountMoney())+"");
+                        if (moneyBean != null) {
+                            secondScreenInfo.setTotalActualPay((totalMoney - moneyBean.getDiscountMoney()) + "");
 
 
-                        }else{
+                        } else {
 
-                            secondScreenInfo.setTotalActualPay(totalMoney+"");
+                            secondScreenInfo.setTotalActualPay(totalMoney + "");
 
                         }
 
 
-                        Log.d(TAG, "sendOrderListToSecondScreen: tvTotalDiscount= "+(tvTotalDiscount.getText().toString()));
-                        secondScreenInfo.setGoodsBeanList(selectedGoodsArrayList);
-                        if (vipInfo!=null) {
+                        Log.d(TAG, "sendOrderListToSecondScreen: tvTotalDiscount= " + (tvTotalDiscount.getText().toString()));
+                        secondScreenInfo.setGoodsBeanList(copyOnWriteArrayList);
+                        if (vipInfo != null) {
                             secondScreenInfo.setVipInfo(vipInfo);
                         }
 
-                        if (moneyBean!=null){
+                        if (moneyBean != null) {
                             secondScreenInfo.setMoneyBean(moneyBean);
 
                         }
 
-                        Gson gson = new Gson();
+
                         //   JSONObject jsonObject = new JSONObject();
                         String jsonStr = gson.toJson(secondScreenInfo);
 
 
-                        Log.d(TAG, "sendOrderListToSecondScreen: str= "+jsonStr+"  type= "+secondScreenInfo.getType());
+                        Log.d(TAG, "sendOrderListToSecondScreen: str= " + jsonStr + "  type= " + secondScreenInfo.getType());
         /*
         try {
-           // jsonObject.put("title","test");
+           // jsonObject.put("title","select_enable_disenable");
 
             //jsonObject.put("content",jsonStr);
         } catch (JSONException e) {
             e.printStackTrace();
         }*/
 
-                        DataPacket dataPacket = UPacketFactory.buildShowText("com.example.niu.myapplication",
+                        DataPacket dataPacket = UPacketFactory.buildShowText("com.qimai.xinlingshou",
                                 jsonStr, new ISendCallback() {
                                     @Override
                                     public void onSendSuccess(long taskId) {
@@ -3477,7 +4520,7 @@ try {
     }
 
 
-   /* private void sendOrderListToSecondScreen(String type){
+    /* private void sendOrderListToSecondScreen(String type){
 
 
 
@@ -3485,7 +4528,7 @@ try {
 
 
 
-      *//*  if (isPaySucess&&type.equals(SecondScreenInfo.PAYSUCESS)){
+     *//*  if (isPaySucess&&type.equals(SecondScreenInfo.PAYSUCESS)){
 
             type = SecondScreenInfo.PAYSUCESS;
 
@@ -3493,7 +4536,7 @@ try {
 
             type = SecondScreenInfo.UPDATE;
         }*//*
-        //Intent intent = new Intent("test.data");
+        //Intent intent = new Intent("select_enable_disenable.data");
 
        // getActivity().sendBroadcast(intent);
         DataPacket packet1 = UPacketFactory.
@@ -3510,10 +4553,10 @@ try {
         secondScreenInfo.setTotalDiscountMoney(tvTotalDiscount.getText().toString());
 
         String totalMoney1 = tvTotalMoney.getText().toString();
-        if (totalMoney1.contains("¥")){
+        if (totalMoney1.contains("￥")){
             Log.d(TAG, "onViewClicked1: before totalMoney1= "+totalMoney1);
 
-            totalMoney1 = totalMoney1.replace("¥ ","");
+            totalMoney1 = totalMoney1.replace("￥ ","");
 
 
             Log.d(TAG, "onViewClicked1: after totalMoney1= "+totalMoney1);
@@ -3561,7 +4604,7 @@ try {
         Log.d(TAG, "sendOrderListToSecondScreen: str= "+jsonStr+"  type= "+secondScreenInfo.getType());
         *//*
         try {
-           // jsonObject.put("title","test");
+           // jsonObject.put("title","select_enable_disenable");
 
             //jsonObject.put("content",jsonStr);
         } catch (JSONException e) {
@@ -3593,10 +4636,10 @@ try {
 
     }*/
 
-        private void showImgsMenu(long taskId) {
+    private void showImgsMenu(long taskId) {
         final JSONObject data = new JSONObject();
         try {
-          //  Hint.Short(getActivity(),taskId+"");
+            //  Hint.Short(getActivity(),taskId+"");
             data.put("title", "企小店欢迎您");
             JSONObject head = new JSONObject();
             head.put("param1", "商品名");
@@ -3610,9 +4653,9 @@ try {
             for (int i = 0; i < selectedGoodsArrayList.size(); i++) {
                 JSONObject listItem = new JSONObject();
                 listItem.put("param1", selectedGoodsArrayList.get(i).getGoodsName());
-                listItem.put("param2", "¥ "+selectedGoodsArrayList.get(i).getPrice());
-                listItem.put("param3", "x "+selectedGoodsArrayList.get(i).getNumber());
-                listItem.put("param4","¥ "+selectedGoodsArrayList.get(i).getPrice()*selectedGoodsArrayList.get(i).getNumber() );
+                listItem.put("param2", "￥ " + selectedGoodsArrayList.get(i).getPrice());
+                listItem.put("param3", "x " + selectedGoodsArrayList.get(i).getNumber());
+                listItem.put("param4", "￥ " + selectedGoodsArrayList.get(i).getPrice() * selectedGoodsArrayList.get(i).getNumber());
                 list.put(listItem);
             }
             data.put("list", list);
@@ -3625,7 +4668,7 @@ try {
             KVPListTwo.put("value", tvTotalDiscount.getText().toString());
             JSONObject KVPListThree = new JSONObject();
             KVPListThree.put("name", "会员折扣 ");
-            KVPListThree.put("value","22222" );
+            KVPListThree.put("value", "22222");
 //            JSONObject KVPListFour = new JSONObject();
 //            KVPListFour.put("name", "应收金额 ");
 //            KVPListFour.put("value", "120.00");
@@ -3636,11 +4679,12 @@ try {
             data.put("KVPList", KVPList);
         } catch (JSONException e) {
             e.printStackTrace();
-           // ToastUtils.showLongToast(e.toString());
+            // ToastUtils.showLongToast(e.toString());
         }
         String json1 = UPacketFactory.createJson(DataModel.SHOW_IMGS_LIST, data.toString());
         mDSKernel.sendCMD(DSKernel.getDSDPackageName(), json1, taskId, null);
     }
+
     @OnClick({R.id.ll_top, R.id.tv_total_money, R.id.tv_total_discount, R.id.tv_all_cancel, R.id.ll_bottom_menu, R.id.ll_empty_goods, R.id.rv_select_goods, R.id.ll_goods_items})
     public void onViewClicked(View view) {
         switch (view.getId()) {
@@ -3656,8 +4700,7 @@ try {
                 //整单取消时候不能点击
 
                 setCancelAndClooectionEnable(false);
-                ((MainActivity)activity).showUnselectGoodsLayout();
-
+                ((MainActivity) activity).showUnselectGoodsLayout();
 
                 break;
 
@@ -3673,9 +4716,8 @@ try {
     }
 
     /**
-     *
      * @Function 整单取消按钮与收款不能点击
-     * */
+     */
 
     private void setCancelAndClooectionEnable(boolean enable) {
 
@@ -3689,17 +4731,14 @@ try {
     }
 
 
-
-
-    public void setOnPendingOrderSucess(onPendingOrderSucess onPendingOrderSucess){
+    public void setOnPendingOrderSucess(onPendingOrderSucess onPendingOrderSucess) {
 
         this.onPendingOrderSucess = onPendingOrderSucess;
 
     }
 
 
-
-    public interface onPendingOrderSucess{
+    public interface onPendingOrderSucess {
 
 
         public void onPendingOrderSucess(int position);
@@ -3756,6 +4795,7 @@ try {
             }
         });
     }
+
     private void sendPicture() {
 
 //        Hint.Short(getActivity(),"--");
@@ -3779,7 +4819,7 @@ try {
 
             @Override
             public void onSendProcess(long totle, long sended) {
-                Log.d(TAG, "sendPicture: --------->"+totle+"  "+sended);
+                Log.d(TAG, "sendPicture: --------->" + totle + "  " + sended);
             }
         });
     }
@@ -3815,6 +4855,7 @@ try {
             e.printStackTrace();
         }
     }
+
     private void checkFileExist(long fileId, final ICheckFileCallback mICheckFileCallback) {
         DataPacket packet = new DataPacket.Builder(DSData.DataType.CHECK_FILE).data("def").
                 recPackName(DSKernel.getDSDPackageName()).addCallback(new ISendCallback() {
@@ -3822,12 +4863,14 @@ try {
             public void onSendSuccess(long taskId) {
 
             }
+
             @Override
             public void onSendFail(int errorId, String errorInfo) {
                 if (mICheckFileCallback != null) {
                     mICheckFileCallback.onCheckFail();
                 }
             }
+
             @Override
             public void onSendProcess(long totle, long sended) {
 
@@ -3845,38 +4888,7 @@ try {
         });
     }
 
-    public void calculateInSampleSize(int reqWidth,int reqHeight){
 
 
-       BitmapFactory.Options options = new BitmapFactory.Options();
-       options.inJustDecodeBounds = true;
-
-        Bitmap bitmap = BitmapFactory.decodeResource(getResources(),R.drawable.ic_welcome
-        ,options);
-
-        int width = bitmap.getWidth();
-        int height = bitmap.getHeight();
-
-
-        int inSampleSize = 1;
-
-        int halfWidth = width/2;
-        int halfHeight = height/2;
-
-
-        // pic    500*600
-        // target 300*300
-
-
-        while (halfWidth/inSampleSize >= reqWidth && halfHeight/inSampleSize >= reqHeight){
-
-            inSampleSize*=2;
-
-        }
-
-
-
-
-    }
 
 }

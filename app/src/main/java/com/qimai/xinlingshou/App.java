@@ -1,13 +1,20 @@
 package com.qimai.xinlingshou;
 
+import android.app.Application;
 import android.content.Context;
 import android.os.Handler;
+import android.support.multidex.MultiDex;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.View;
 
+import com.dianping.logan.Logan;
+import com.dianping.logan.LoganConfig;
 import com.qimai.xinlingshou.utils.AidlUtil;
 import com.qimai.xinlingshou.utils.Store;
 import com.qimai.xinlingshou.utils.ToastUtils;
+import com.tencent.bugly.Bugly;
+import com.tencent.bugly.beta.Beta;
 import com.tencent.bugly.crashreport.CrashReport;
 
 import org.litepal.LitePal;
@@ -17,6 +24,7 @@ import org.xutils.db.table.TableEntity;
 import org.xutils.x;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 
@@ -24,8 +32,9 @@ import java.io.IOException;
  * Created by Administrator on 2018/5/18.
  */
 
-public class App extends LitePalApplication {
+public class App extends Application {
 
+    private static final String TAG = "App";
 
     public  static   DbManager db;
     public static Store store;
@@ -49,29 +58,36 @@ public class App extends LitePalApplication {
 	//public static String API_URL = "http://inapi.zmcms.cn/web/";
     // 线上shop环境`
 	public static String API_URL = "http://inapi.qimai.shop/web/";
-
+    // 内部beta环境x
+    //public static String API_URL = "http://inapi.qmai.co/web/";
 
 	//13136571734 123456
 
+    //13074634093 111111
+    //18860470317  123456
     // 线上正式环境
+	//public static String API_URL = "http://inapi.qmai.cn/web/";
+	//public static String API_URL = "http://inapi.qmai.cn/web/";
+
 	//public static String API_URL = "http://inapi.qmai.cn/web/";
 
     //  收银机订单 用于接收收银机收款后产生的订单
-    public static final String API_RECEIVE = "reta/order/receive";
+    public static final String API_RECEIVE = "ptfw/order/receive";
 
     public static App instance = null;
-
 
 
     private boolean isAidl;
 
     public boolean isAidl() {
+
         return isAidl;
     }
 
     public void setAidl(boolean aidl) {
         isAidl = aidl;
     }
+
 
 
     @Override
@@ -86,6 +102,8 @@ public class App extends LitePalApplication {
         instance = this;
         isAidl = true;
         AidlUtil.getInstance().connectPrinterService(this);
+
+        initMeituanLog();
 
         //本地数据的初始化
         DbManager.DaoConfig daoConfig = new DbManager.DaoConfig()
@@ -123,8 +141,9 @@ public class App extends LitePalApplication {
         super.onCreate();
         mContext = this;
 
+        Bugly.init(this, "5558e60e56", false);
 
-        CrashReport.initCrashReport(getApplicationContext(), "5558e60e56", false);
+        /*CrashReport.initCrashReport(getApplicationContext(), "5558e60e56", false);*/
         ToastUtils.init(mContext);
 
         Context context = getApplicationContext();
@@ -140,10 +159,32 @@ public class App extends LitePalApplication {
         CrashReport.initCrashReport(getApplicationContext(), "5558e60e56", false);
 
     }
+
+    private void initMeituanLog() {
+
+
+        LoganConfig config = new LoganConfig.Builder()
+                .setCachePath(getApplicationContext().getFilesDir().getAbsolutePath())
+                .setPath(getApplicationContext().getExternalFilesDir(null).getAbsolutePath()
+                        + File.separator + "logan_v1")
+                .setEncryptKey16("0123456789012345".getBytes())
+                .setEncryptIV16("0123456789012345".getBytes())
+                .build();
+        Logan.init(config);
+
+    }
+
     @Override
     protected void attachBaseContext(Context base) {
         super.attachBaseContext(base);
 //        Multidex.install(this);
+
+        // you must install multiDex whatever tinker is installed!
+        MultiDex.install(base);
+
+
+        // 安装tinker
+        Beta.installTinker();
     }
 
     /**
@@ -233,12 +274,12 @@ public class App extends LitePalApplication {
 
         int len = strlen(str);
 
-        if (len >= 12) {
-            str = str.substring(0, 6);
+        if (len >= 10) {
+            str = str.substring(0, 5);
             return str;
         }
 
-        int padLen =12 - len;
+        int padLen =10 - len;
         for (int i = 0; i < padLen; i++) {
             str += " ";
         }
@@ -247,17 +288,44 @@ public class App extends LitePalApplication {
 
 
     }
+    public static String formatRight2(String str) {
+
+
+        if (str.contains("? ")){
+
+            Log.d(TAG, "formatRight2: comntains ￥");
+
+
+        }
+
+
+        int len = strlen(str);
+        //   str = str.replaceAll("\\.", "");
+
+        if (len >= 20) {
+//            str = str.substring(0,6);
+            return str;
+        }
+
+        int padLen = 20 - len;
+        for (int i = 0; i < padLen; i++) {
+            str= " "+str;
+        }
+
+        return str;
+
+    }
     public static String formatStr2(String str) {
 
 
         int len = strlen(str);
 
-        if (len >= 8) {
-            str = str.substring(0, 8);
+        if (len >= 7) {
+            str = str.substring(0,7);
             return str;
         }
 
-        int padLen = 8 - len;
+        int padLen =7 - len;
         for (int i = 0; i < padLen; i++) {
             str += " ";
         }

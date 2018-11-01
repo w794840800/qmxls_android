@@ -4,8 +4,7 @@
 
     >
 
-
-    <stroke android:color="#cccccc" android:width="0.5dp">
+    <stroke android:color="#cccccc" android:width="1dp">
 
     </stroke>
 

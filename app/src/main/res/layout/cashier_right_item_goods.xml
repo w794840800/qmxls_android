@@ -3,7 +3,6 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="horizontal">
-
     <LinearLayout
         android:layout_width="0dp"
         android:layout_weight="11"
@@ -12,13 +11,13 @@
 
         <RelativeLayout
             android:background="@drawable/shape_gray_bg"
-
-            android:layout_marginRight="10dp"
+            android:layout_marginRight="20dp"
             android:visibility="visible"
             android:id="@+id/rl_search_item1"
             android:layout_marginTop="15dp"
             android:layout_width="match_parent"
             android:layout_height="50dp"
+            android:layout_marginLeft="20dp"
             android:gravity="center"
             >
 
@@ -97,13 +96,18 @@
             android:id="@+id/ll_goods_items"
             android:visibility="visible"
             android:gravity="center"
+            android:layout_marginLeft="20dp"
+            android:layout_gravity="center"
             android:orientation="vertical"
+            android:layout_marginRight="20dp"
             android:layout_width="match_parent"
             android:layout_height="match_parent">
 
 
             <android.support.v7.widget.RecyclerView
                 android:id="@+id/rv_goods"
+                android:visibility="visible"
+                android:layout_gravity="center"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent">
 
@@ -112,6 +116,9 @@
             </android.support.v7.widget.RecyclerView>
 
         </LinearLayout>
+
+
+
 
         <LinearLayout
             android:id="@+id/ll_empty"
@@ -128,6 +135,7 @@
                 />
             <TextView
                 android:layout_marginTop="15dp"
+                android:visibility="gone"
                 android:text="还没收藏商品，请先添加"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content" />
@@ -151,19 +159,22 @@
         xmlns:android="http://schemas.android.com/apk/res/android"
         android:layout_width="1dp"
         android:layout_height="match_parent"
-        android:background="#F0F0F0"
+        android:background="#ffe5e5e5"
         />
 
     <LinearLayout
+        android:id="@+id/ll_category"
         android:orientation="vertical"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:gravity="center_horizontal">
 
 
+
     <TextView
         android:layout_marginTop="16dp"
         android:text="全部商品"
+        android:visibility="gone"
         android:id="@+id/tv_all_goods"
         android:textSize="16sp"
         android:paddingTop="15dp"
@@ -176,18 +187,46 @@
         android:background="@drawable/shape_blue_bg"
         />
 
+
+
+
     <!--<TextView-->
-        <!--android:layout_marginTop="10dp"-->
-        <!--android:id="@+id/tv_order_one"-->
+        <!--android:layout_marginTop="16dp"-->
+        <!--android:text="全部商品"-->
+        <!--android:id="@+id/tv_all_goods"-->
         <!--android:textSize="16sp"-->
-        <!--android:layout_width="wrap_content"-->
-        <!--android:layout_height="wrap_content"-->
         <!--android:paddingTop="15dp"-->
         <!--android:paddingBottom="15dp"-->
+        <!--android:textColor="@color/TvBlue"-->
         <!--android:paddingLeft="10dp"-->
         <!--android:paddingRight="10dp"-->
-        <!--android:text="分组一类"-->
-        <!--android:background="@drawable/shape_gray_bg"-->
+        <!--android:layout_width="wrap_content"-->
+        <!--android:layout_height="wrap_content"-->
+        <!--android:background="@drawable/shape_blue_bg"-->
+        <!--/>-->
+
+
+        <ListView
+            android:visibility="gone"
+            android:id="@+id/lv_radio"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingLeft="3dp"
+            android:paddingRight="3dp"
+            android:divider="@null"
+            />
+
+
+        <android.support.v7.widget.RecyclerView
+            android:id="@+id/rv_category"
+            android:visibility="visible"
+            android:layout_width="match_parent"
+            android:layout_gravity="center"
+            android:layout_height="wrap_content"/>
+ <!--<ExpandableListView-->
+            <!--android:id="@+id/expanded_list"-->
+            <!--android:layout_width="match_parent"-->
+            <!--android:layout_height="wrap_content"/>-->
 
         <!--/>-->
     <!--<TextView-->

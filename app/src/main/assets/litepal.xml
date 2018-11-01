@@ -1,14 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <litepal>
     <dbname value="qimai_xls" />
-    <version value="2" />
+    <version value="10" />
 
     <list>
         <mapping class="com.qimai.xinlingshou.bean.goodsBean" />
         <mapping class="com.qimai.xinlingshou.bean.ordersBean" />
         <mapping class="com.qimai.xinlingshou.bean.orderIteminfo"/>
         <mapping class="com.qimai.xinlingshou.bean.testbean"/>
-
+        <mapping class="com.qimai.xinlingshou.bean.RechargeOrderBean"/>
+        <mapping class="com.qimai.xinlingshou.bean.GoodsCategoryBean"/>
     </list>
 
 </litepal>

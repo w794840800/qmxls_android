@@ -12,11 +12,12 @@
 <LinearLayout
     android:gravity="center"
     xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="wrap_content"
+    android:layout_width="350dp"
     android:paddingLeft="20dp"
     android:paddingRight="20dp"
     android:orientation="vertical"
     android:paddingBottom="20dp"
+    android:background="@drawable/shape_round_white"
     android:layout_height="wrap_content">
 
     <LinearLayout
@@ -37,35 +38,50 @@
             android:id="@+id/tv_order_money"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="170.00元"
+            android:text="170.00"
+
+            android:textSize="22sp"
+            android:textColor="@color/tvGreen"
+            />
+        <TextView
+
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="元"
             android:textSize="16sp"
             android:textColor="@color/TvBlack"
             />
+
     </LinearLayout>
     <TextView
         android:layout_marginTop="20dp"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textSize="13sp"
-        android:textColor="@color/TvDefault"
-        android:text="是否使用余额支付"/>
+        android:textColor="@color/TvBlack"
+        android:text="是否使用余额支付?"/>
 
 
 
     <LinearLayout
-        android:layout_marginTop="20dp"
+        android:layout_marginTop="30dp"
         android:layout_width="wrap_content"
-
-
         android:gravity="center"
         android:orientation="horizontal"
         android:layout_height="wrap_content">
-<Button
+<com.qimai.xinlingshou.view.CustomButton
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
     android:text="确认"
-
     android:id="@+id/tv_ok"
+    android:background="@drawable/shape_bt_bg"
+    android:textColor="@color/TvBlue"
+    android:paddingLeft="50dp"
+    android:minHeight="0dp"
+    android:minWidth="0dp"
+    android:paddingTop="10dp"
+    android:paddingBottom="10dp"
+    android:paddingRight="50dp"
     android:layout_marginRight="15dp"
     />
         <Button
@@ -73,6 +89,14 @@
             android:layout_marginLeft="15dp"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:background="@drawable/shape_round_blue"
+            android:paddingLeft="50dp"
+            android:minHeight="0dp"
+            android:minWidth="0dp"
+            android:paddingTop="10dp"
+            android:paddingBottom="10dp"
+            android:paddingRight="50dp"
+            android:textColor="@color/TvWhite"
             android:text="取消"
             />
     </LinearLayout>

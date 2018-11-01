@@ -1,4 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
+
+<android.support.v4.widget.NestedScrollView
+    android:orientation="vertical"
+    android:background="#fff"
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    >
 <LinearLayout
     android:orientation="vertical"
     android:background="#fff"
@@ -23,6 +31,7 @@
             android:text="七仔"
             android:textColor="#000"
             android:textSize="18sp"
+            android:visibility="gone"
             android:layout_height="wrap_content" />
 
 
@@ -46,7 +55,7 @@
             android:id="@+id/bt_client_change"
             android:layout_marginLeft="20dp"
             android:textColor="#fff"
-            android:background="#609eeb"
+            android:background="@drawable/shape_round_blue"
             />
     </LinearLayout>
 
@@ -93,10 +102,11 @@
 
     <LinearLayout
         android:layout_marginTop="20dp"
-        android:visibility="gone"
+        android:visibility="visible"
         android:orientation="vertical"
         android:id="@+id/ll_account"
         android:layout_width="match_parent"
+        android:paddingBottom="10dp"
         android:layout_height="wrap_content">
 
         <TextView
@@ -107,17 +117,66 @@
             android:layout_marginLeft="20dp"
 
             />
-        <TextView
-            android:id="@+id/tv_account"
+
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="150.00元"
+            android:orientation="horizontal"
             android:layout_marginTop="20dp"
-            android:textSize="24sp"
-            android:textColor="@color/TvBlack"
-            android:layout_marginLeft="20dp"
 
-            />
+            >
+
+            <TextView
+                android:id="@+id/tv_account"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="150.00元"
+
+                android:textSize="24sp"
+                android:textColor="@color/TvBlack"
+                android:layout_marginLeft="20dp"
+
+                />
+            <TextView
+
+                android:layout_marginBottom="25dp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="充值"
+                android:layout_gravity="center_horizontal"
+                android:visibility="visible"
+                android:paddingTop="5dp"
+                android:paddingBottom="5dp"
+                android:paddingLeft="20dp"
+                android:paddingRight="20dp"
+                android:id="@+id/tv_balance_recharge"
+                android:layout_marginLeft="20dp"
+                android:textColor="#fff"
+                android:background="@drawable/shape_round_blue"
+                />
+
+            <TextView
+
+                android:id="@+id/tv_recharge_refresh"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginLeft="20dp"
+                android:layout_marginBottom="25dp"
+                android:background="@drawable/shape_round_refresh_gray"
+                android:paddingLeft="15dp"
+                android:paddingTop="5dp"
+                android:drawableLeft="@drawable/refresh"
+
+                android:drawablePadding="2dp"
+                android:paddingRight="20dp"
+                android:paddingBottom="5dp"
+                android:text="刷新"
+                android:textColor="#b5b6b5"
+
+                android:visibility="visible" />
+        </LinearLayout>
+
     </LinearLayout>
 
 
@@ -256,3 +315,5 @@
     </LinearLayout>
 
 </LinearLayout>
+
+</android.support.v4.widget.NestedScrollView>

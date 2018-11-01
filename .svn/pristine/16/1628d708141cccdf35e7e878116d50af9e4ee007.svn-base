@@ -1,0 +1,57 @@
+package com.qimai.xinlingshou.calculate;
+
+import com.qimai.xinlingshou.bean.MoneyBean;
+
+/**
+ * Created by wanglei on 18-7-3.
+ */
+
+public class MianzhiCrash extends DisCountCrash{
+
+    private static final String TAG = "MianzhiCrash";
+   //面值券要求
+    private double max;
+   //面值券面值
+    private double reduce;
+    public MianzhiCrash(double max,double reduce){
+
+        this.max = max;
+        this.reduce = reduce;
+
+    }
+
+    @Override
+    public MoneyBean calculateMoney() {
+
+
+        moneyBean = crashSuper.calculateMoney();
+
+      //  System.out.println(moneyBean.toString());
+
+        if (moneyBean.getEndMoney()>=max) {
+
+
+            //订单金额小于优惠面额
+
+            if (moneyBean.getEndMoney() <= reduce) {
+
+                moneyBean.setDiscountMoney(moneyBean.getEndMoney());
+                moneyBean.setMianzhiOrZhrkouDiscount(moneyBean.getEndMoney());
+
+            } else {
+
+                moneyBean.setDiscountMoney(moneyBean.getDiscountMoney() + reduce);
+                moneyBean.setMianzhiOrZhrkouDiscount(reduce);
+            }
+        }
+        else{
+
+            moneyBean.setCanDiscount(true);
+            moneyBean.setMianzhiOrZhrkouDiscount(0.00);
+
+        }
+
+       return moneyBean;
+        //return super.calculateMoney();
+    }
+}

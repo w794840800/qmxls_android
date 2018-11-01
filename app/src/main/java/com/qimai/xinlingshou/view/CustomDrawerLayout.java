@@ -38,11 +38,15 @@ public class CustomDrawerLayout extends DrawerLayout {
             case MotionEvent.ACTION_DOWN:
                 final float x = ev.getX();
                 final float y = ev.getY();
+                Log.d(TAG, "onInterceptTouchEvent: ");
                 final View touchedView = findTopChildUnder((int) x, (int) y);
                 if (touchedView != null && isContentView(touchedView)
                       //因为收银界面需要右侧遮罩层点击事件不能响应到到子控件中
-                        &&(findViewById(R.id.ll_setiing).getVisibility()==View.VISIBLE)
+                        //&&(findViewById(R.id.ll_setiing).getVisibility()==View.VISIBLE)
                         && this.isDrawerOpen(GravityCompat.START)) {
+
+                    Log.d(TAG, "onInterceptTouchEvent: == false ");
+
                     return false;
                 }
                 break;
@@ -117,23 +121,23 @@ public class CustomDrawerLayout extends DrawerLayout {
         //((FrameLayout)findViewById(R.id.fl_left_container)).getChildAt(0);
 
 
-        /*Class test = this.getClass().getSuperclass();
+        /*Class select_enable_disenable = this.getClass().getSuperclass();
 
         //setScrimColor(0);
 
-        Log.d(TAG, "isContentView: test= "+(test!=null));
+        Log.d(TAG, "isContentView: select_enable_disenable= "+(select_enable_disenable!=null));
         try {
-            Field[] fields = test.getDeclaredFields();
+            Field[] fields = select_enable_disenable.getDeclaredFields();
 
             for (Field f:
                  fields) {
                 Log.d(TAG, "isContentView: name= "+f.getName());
 
             }
-            Field field = test.getDeclaredField("mDrawerState");
+            Field field = select_enable_disenable.getDeclaredField("mDrawerState");
 
 
-            int color = field.getInt(test);
+            int color = field.getInt(select_enable_disenable);
             field.setAccessible(true);
             Log.d(TAG, "isContentView: mScrimColor= "+color);
 
@@ -162,7 +166,10 @@ public class CustomDrawerLayout extends DrawerLayout {
         Log.d(TAG, "isContentView: viewGroup3 id= "+viewGroup3.getId()+" left_right= "
 
         +R.id.ll_setiing+" viewId= "+child.getId());
-        return ((LayoutParams) child.getLayoutParams()).gravity == Gravity.NO_GRAVITY;
+        boolean isOk = ((LayoutParams) child.getLayoutParams()).gravity == Gravity.NO_GRAVITY;
+
+        Log.d(TAG, "isContentView: isOk= "+isOk);
+        return isOk;
 
 
     }

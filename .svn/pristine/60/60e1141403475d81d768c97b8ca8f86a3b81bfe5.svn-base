@@ -1,0 +1,126 @@
+package com.qimai.xinlingshou.fragment.right;
+
+import android.os.Bundle;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
+import android.support.v4.app.Fragment;
+import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.Toolbar;
+import android.util.Log;
+import android.view.LayoutInflater;
+import android.view.MenuItem;
+import android.view.View;
+import android.view.ViewGroup;
+
+import com.qimai.xinlingshou.BaseFragment;
+import com.qimai.xinlingshou.R;
+import com.qimai.xinlingshou.activity.MainActivity;
+
+import butterknife.ButterKnife;
+
+public class ValueCardReChargeFragment extends BaseFragment {
+
+    private static final String TAG = "ValueCardReChargeFragme";
+    RecyclerView rvValueCard;
+    onBackClick onBackClick;
+    Toolbar toolbar;
+    @Override
+    protected void initData() {
+
+    }
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
+        setHasOptionsMenu(true);
+
+    }
+
+    @Override
+    protected void initView(View rootView) {
+
+        rvValueCard = (RecyclerView)rootView.findViewById(R.id.rv_value_card);
+
+        toolbar = (Toolbar)rootView.findViewById(R.id.tl_choose_count);
+
+        toolbar.setNavigationOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (onBackClick!=null){
+
+                    onBackClick.onBackClick();
+                }
+            }
+        });
+
+    }
+
+    @Override
+    protected int getLayout() {
+
+        return R.layout.recharge_fragment;
+
+    }
+
+
+    @Override
+    public void setUserVisibleHint(boolean isVisibleToUser) {
+        super.setUserVisibleHint(isVisibleToUser);
+
+        Log.d(TAG, "setUserVisibleHint: isVisibleToUse= "+isVisibleToUser);
+
+    }
+
+    @Override
+    public void onHiddenChanged(boolean hidden) {
+        super.onHiddenChanged(hidden);
+
+        Log.d(TAG, "onHiddenChanged: hidden= "+hidden );
+        
+        
+    }
+
+    @Nullable
+    @Override
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+       
+        
+                View view = super.onCreateView(inflater, container, savedInstanceState);
+
+        Log.d(TAG, "onCreateView: ");
+                return view;
+   
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+
+
+        switch (item.getItemId()){
+
+            case android.R.id.home:
+                //Toast.makeText(activity, "111ckick ckkdkfjkd", Toast.LENGTH_SHORT).show();
+
+               // ((MainActivity)activity).showRightCrashierLayout();
+                //
+                if (onBackClick != null){
+
+                    onBackClick.onBackClick();
+                }
+
+                return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    public void setOnBackClick(ValueCardReChargeFragment.onBackClick onBackClick) {
+
+        this.onBackClick = onBackClick;
+    }
+
+    public interface onBackClick{
+
+        void onBackClick();
+    }
+
+}

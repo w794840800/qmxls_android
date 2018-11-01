@@ -1,0 +1,131 @@
+package com.qimai.xinlingshou.utils;
+
+import android.os.Environment;
+import android.text.TextUtils;
+import android.util.Log;
+
+import com.qimai.xinlingshou.App;
+
+import org.w3c.dom.Text;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.lang.reflect.Method;
+import java.nio.channels.FileChannel;
+
+public class DBCopyUtils {
+
+    private static final String TAG = "DBCopyUtils";
+    public static void copyDataBaseToSD(){
+
+        String dbName = "temp";
+        if (!Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState())) {
+
+            Log.d(TAG, "copyDataBaseToSD: error");
+            return ;
+
+    }
+
+
+        File dbFile = new File(App.getBaseApplication().getDatabasePath("qimai_xls")+".db");
+
+        try {
+
+            if (!dbFile.exists()){
+
+                return;
+
+            }
+            Class c = Class.forName("android.os.SystemProperties");
+            Method get = c.getMethod("get", String.class);
+            Log.i("sunmi", "the sn:" + (String) get.invoke(c, "ro.serialno"));
+
+            String temp = (String) get.invoke(c, "ro.serialno");
+
+            if (!TextUtils.isEmpty(temp)){
+
+                dbName = temp;
+
+            }else{
+
+                //dbName = System.currentTimeMillis()+"";
+
+                /*String deviceId = DeviceUtils.getDeviceId();
+                if (!TextUtils.isEmpty(deviceId)){
+
+                    dbName = temp;
+                }else{
+                    dbName = System.currentTimeMillis()+"";
+
+                }*/
+
+            }
+
+
+
+            /*Log.i("sunmi", "First four characters:"
+                    + ((String) get.invoke(c, "ro.serialno")).substring(0, 4));*/
+        } catch (Exception e) {
+            Log.d(TAG, "copyDataBaseToSD: e= "+e.getMessage());
+            e.printStackTrace();
+        }
+
+
+        Log.d(TAG, "copyDataBaseToSD: dbName= "+dbName);
+        File file  = new File(Environment.getExternalStoragePublicDirectory(Environment
+        .DIRECTORY_DOWNLOADS), dbName+".db");
+
+        FileChannel inChannel = null,outChannel = null;
+
+
+        try {
+            file.createNewFile();
+            inChannel = new FileInputStream(dbFile).getChannel();
+            outChannel = new FileOutputStream(file).getChannel();
+            inChannel.transferTo(0, inChannel.size(), outChannel);
+            Log.d(TAG, "copyDataBaseToSD: sucess");
+
+
+            FileInputStream in = new FileInputStream(file);
+           new Thread(new Runnable() {
+               @Override
+               public void run() {
+                   boolean isUpload = FtpUtil.uploadFile("119.29.25.121",221,"dataftp"
+                           ,"Data2018@#%","test",null,file.getName(),in);
+
+                   Log.d(TAG, "copyDataBaseToSD: isUpload= "+isUpload);
+               }
+           }).start();
+
+        }
+        catch (Exception e) {
+            Log.d(TAG, "copyDataBaseToSD: failed= "+e.getMessage());
+
+            //LogUtils.e(TAG, "copy dataBase to SD error.");
+            e.printStackTrace();
+        }finally{
+            try {
+                if (inChannel != null) {
+                    inChannel.close();
+                    inChannel = null;
+                }
+                if(outChannel != null){
+                    outChannel.close();
+                    outChannel = null;
+                }			}
+                catch (IOException e) {
+                //LogUtils.e(TAG, "file close error.");
+                e.printStackTrace();
+            }
+        }
+
+
+
+
+
+}
+
+
+}

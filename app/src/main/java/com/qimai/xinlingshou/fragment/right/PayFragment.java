@@ -5,10 +5,12 @@ import android.support.v4.app.Fragment;
 import android.support.v4.view.ViewPager;
 import android.util.Log;
 import android.view.View;
+import android.widget.LinearLayout;
 
 import com.qimai.xinlingshou.BaseFragment;
 import com.qimai.xinlingshou.R;
 import com.qimai.xinlingshou.adapter.PayFragmentAdapter;
+import com.qimai.xinlingshou.view.CustomViewPager;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
@@ -19,7 +21,6 @@ import java.util.ArrayList;
 import butterknife.BindView;
 import butterknife.Unbinder;
 
-import static com.qimai.xinlingshou.fragment.PayFragment.TAG;
 
 /**
  * Created by NIU on 2018/5/18.
@@ -27,10 +28,12 @@ import static com.qimai.xinlingshou.fragment.PayFragment.TAG;
  */
 
 public class PayFragment extends BaseFragment {
+
+    private static final String TAG = "PayFragment";
     @BindView(R.id.tl_pay_method)
     TabLayout tlPayMethod;
     @BindView(R.id.vp_pay_method)
-    ViewPager vpPayMethod;
+    CustomViewPager vpPayMethod;
     Unbinder unbinder;
     private ArrayList<Fragment> fragmentArrayList;
     private PayFragmentAdapter payFragmentAdapter;
@@ -38,6 +41,7 @@ public class PayFragment extends BaseFragment {
     private Fragment crashFragment;
     private Fragment payOtherFragment;
 
+    boolean isSelectOne;
     @Override
     protected void initData() {
 
@@ -65,7 +69,6 @@ public class PayFragment extends BaseFragment {
         payFragmentAdapter = new PayFragmentAdapter(getChildFragmentManager());
         payFragmentAdapter.setFragmentList(fragmentArrayList);
         tlPayMethod.setupWithViewPager(vpPayMethod);
-
         vpPayMethod.setAdapter(payFragmentAdapter);
 
         //默认让其先显示第二个
@@ -123,6 +126,39 @@ public class PayFragment extends BaseFragment {
 
                 ((CrashFragment)crashFragment).setTotalMoney(messageEvent.getTotalMoney());
             }
+        }else if (messageEvent.getType().equals(MessageEvent.PAY_CAN_SCROLL)){
+
+            Log.d(TAG, "onEvent: PAY_CAN_SCROLL");
+
+            vpPayMethod.setScroll(true);
+            vpPayMethod.setClickable(true);
+
+            LinearLayout tabStrip = (LinearLayout) tlPayMethod.getChildAt(0);
+            for (int i = 0; i < tabStrip.getChildCount(); i++) {
+                View tabView = tabStrip.getChildAt(i);
+                if (tabView != null) {
+                    tabView.setClickable(true);
+
+                    tabView.setVisibility(View.VISIBLE);
+                }
+            }
+
+        }else if (messageEvent.getType().equals(MessageEvent.PAY_NOT_SCROLL)){
+
+            Log.d(TAG, "onEvent: PAY_NOT_SCROLL");
+            vpPayMethod.setScroll(false);
+            vpPayMethod.setCurrentItem(0);
+            vpPayMethod.setClickable(false);
+            LinearLayout tabStrip = (LinearLayout) tlPayMethod.getChildAt(0);
+            for (int i = 0; i < tabStrip.getChildCount(); i++) {
+                View tabView = tabStrip.getChildAt(i);
+                if (tabView != null) {
+                    tabView.setClickable(false);
+                    if (i>0){
+                    tabView.setVisibility(View.GONE);
+                }
+                }
+            }
         }
 
         Log.d(TAG, "onEvent: type= "+messageEvent.getType()+" pay= "+messageEvent.getTotalMoney());
@@ -132,6 +168,9 @@ public class PayFragment extends BaseFragment {
     public void setUserVisibleHint(boolean isVisibleToUser) {
         super.setUserVisibleHint(isVisibleToUser);
 
-
     }
+
+
+
+
 }

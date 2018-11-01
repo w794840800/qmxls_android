@@ -1,5 +1,6 @@
 package com.qimai.xinlingshou.fragment.right;
 
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -14,10 +15,14 @@ import android.widget.TextView;
 
 import com.qimai.xinlingshou.BaseFragment;
 import com.qimai.xinlingshou.R;
+import com.qimai.xinlingshou.Service.UploadUtils;
 import com.qimai.xinlingshou.adapter.CouponsRecyclerAdapter;
 import com.qimai.xinlingshou.bean.CouponsEntry;
 import com.qimai.xinlingshou.bean.DiscountBean;
 import com.qimai.xinlingshou.bean.PenderOrderClientInfo;
+import com.qimai.xinlingshou.bean.RechargeOrderBean;
+import com.qimai.xinlingshou.callback.OnTskFinish;
+import com.qimai.xinlingshou.dialog.DialogUtils;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
@@ -25,6 +30,7 @@ import org.greenrobot.eventbus.ThreadMode;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.litepal.LitePal;
 
 import java.util.ArrayList;
 
@@ -76,6 +82,8 @@ public class ClientInfoFragment extends BaseFragment implements CouponsRecyclerA
     boolean isSelectVipCard;
     @BindView(R.id.rv_coupons)
     RecyclerView rvCoupons;
+    @BindView(R.id.tv_recharge_refresh)
+    TextView recharge_refresh;
     CouponsRecyclerAdapter couponsRecyclerAdapter;
     onClientChangeListener onClientChangeListener;
     @BindView(R.id.tv_account)
@@ -90,6 +98,7 @@ public class ClientInfoFragment extends BaseFragment implements CouponsRecyclerA
     private int selectPosition = -1;
     String clientInfo;
 
+    String userId;
     @Override
     protected void initData() {
 
@@ -98,7 +107,15 @@ public class ClientInfoFragment extends BaseFragment implements CouponsRecyclerA
     @Override
     protected void initView(View rootView) {
         CouponsEntryArrayList = new ArrayList<>();
-       // EventBus.getDefault().register(this);
+
+        ArrayList<RechargeOrderBean> ordersBeanArrayList = (ArrayList<RechargeOrderBean>)
+                LitePal.where("query_order= 0 and isauto=0 and ispay=0 and user_id= "+userId).find(RechargeOrderBean.class);
+
+        if (ordersBeanArrayList==null||ordersBeanArrayList.size()==0){
+
+            recharge_refresh.setVisibility(View.GONE);
+        }
+        // EventBus.getDefault().register(this);
        /* couponsRecyclerAdapter = new CouponsRecyclerAdapter(activity,CouponsEntryArrayList);
         rvCoupons.setLayoutManager(new GridLayoutManager(activity,3));
         rvCoupons.setAdapter(couponsRecyclerAdapter);*/
@@ -112,7 +129,7 @@ public class ClientInfoFragment extends BaseFragment implements CouponsRecyclerA
     }
 
     //
-    @OnClick({R.id.bt_client_change, R.id.tv_client_consume_numbe, R.id.tv_client_last_consume_time, R.id.ll_vip_card, R.id.ll_coupons})
+    @OnClick({R.id.bt_client_change, R.id.tv_client_consume_numbe, R.id.tv_client_last_consume_time, R.id.ll_vip_card, R.id.ll_coupons,R.id.tv_recharge_refresh})
     public void onViewClicked(View view) {
         switch (view.getId()) {
             case R.id.bt_client_change:
@@ -138,8 +155,38 @@ public class ClientInfoFragment extends BaseFragment implements CouponsRecyclerA
 
                 break;
             case R.id.ll_coupons:
+
+                break;
+
+            case R.id.tv_recharge_refresh:
+
+                updateRecharge();
+
+
+
                 break;
         }
+    }
+
+    //更新余额
+    private void updateRecharge() {
+
+        //先查询数据库中是否有支付未同步单
+
+       // UploadUtils.uploadRechargeOrderStatus();
+
+
+        UploadUtils.uploadRechargeOrderStatus(userId, new OnTskFinish() {
+            @Override
+            public void finish() {
+                Log.d(TAG, "finish: finish ");
+                //重新更新用户用户
+
+                onClientChangeListener.onRefresh(userId);
+
+            }
+        });
+
     }
 
     public void setOnClientChangeListener(onClientChangeListener onClientChangeListener) {
@@ -251,14 +298,33 @@ public class ClientInfoFragment extends BaseFragment implements CouponsRecyclerA
         unbinder1.unbind();
     }
 
+    @OnClick(R.id.tv_balance_recharge)
+    public void onClick() {
+
+        if (onClientChangeListener!=null){
+
+            onClientChangeListener.onGoToRecharge();
+        }
+
+
+    }
+
 
     //13516492591
     public interface onClientChangeListener {
 
         void onClientChange();
+
+        //去充值储值卡界面
+        void onGoToRecharge();
+
+        void onRefresh(String userId);
+
+
+
     }
 
-    @Subscribe(threadMode = ThreadMode.MAIN, sticky = true)
+    @Subscribe(threadMode = ThreadMode.MAIN)
     public void onEvent(MessageEvent messageEvent) {
         Log.d(TAG, "onEvent: Left_crashier_fragment1111 messageEvent= " + messageEvent.getType());
         if (messageEvent.getType().equals("client_info")) {
@@ -366,6 +432,7 @@ public class ClientInfoFragment extends BaseFragment implements CouponsRecyclerA
 
 
             clearCurrentClientInfo();
+
         } else if (messageEvent.getType().equals(CANCELCOUPONS2)) {
 
 
@@ -445,7 +512,8 @@ public class ClientInfoFragment extends BaseFragment implements CouponsRecyclerA
 
     private void updateUI(String clientinfo1) {
 
-        Log.d(TAG, "updateUI: clientinfo1= " + clientinfo1);
+        Log.d(TAG, "updateUI: clientinfo1= " + clientinfo1+" throawble= "+Log
+        .getStackTraceString(new Throwable()));
         String clientinfo = clientinfo1;
         discountBean = new DiscountBean();
 
@@ -466,28 +534,31 @@ public class ClientInfoFragment extends BaseFragment implements CouponsRecyclerA
             JSONObject balance = client_info.optJSONObject("balance");
             JSONArray couponsArr = client_info.optJSONArray("coupons");
 
-            Log.d(TAG, "updateUI: balance= "+(balance==null));
+            Log.d(TAG, "updateUI: balance= " + (balance == null));
             //更新用户账户余额
-            if (balance!= null) {
+            if (balance != null) {
 
                 String totalBlance = balance.getString("total_amount");
 
                 if (!TextUtils.isEmpty(totalBlance)) {
 
                     llAccount.setVisibility(View.VISIBLE);
-                    tvAccount.setText(totalBlance+"元");
+                    tvAccount.setText(totalBlance + "元");
                 }
-            }else{
+            } else {
                 llAccount.setVisibility(View.GONE);
 
 
             }
             discountBean.setUser_id(base_info.getString("id"));
 
+            userId = base_info.getString("id");
+
+
             //App.store.put("userid",base_info.getString("id")).commit();
             JSONObject card = null;
 
-                card = client_info.optJSONObject("card");
+            card = client_info.optJSONObject("card");
 
             tvClientName.setText(base_info.getString("nickname"));
             tvClientMobile.setText(base_info.getString("mobile"));
@@ -504,7 +575,7 @@ public class ClientInfoFragment extends BaseFragment implements CouponsRecyclerA
                     Log.d(TAG, "onEvent: json= " + json.getString("title"));
                     String coupon_id = null;
                     try {
-                        coupon_id = coupons.getString("coupon_id");
+                        coupon_id = coupons.getString("id");
                         Log.d(TAG, "updateUI: coupon_id= " + coupon_id + " i= " + i);
                         if (TextUtils.isEmpty(coupon_id)) {
 
@@ -540,7 +611,7 @@ public class ClientInfoFragment extends BaseFragment implements CouponsRecyclerA
                 tvDiscount.setText(card.getString("discount"));
 
                 Log.d(TAG, "updateUI: card= " + card.toString());
-                tvVipName.setText(card.getString("card_type"));
+                // tvVipName.setText(card.getString("card_type"));
                 discountBean.setVipCard_id(card.getString("id"));
 
                 Log.d(TAG, "updateUI: cardId = " + card.getString("id"));
@@ -550,7 +621,7 @@ public class ClientInfoFragment extends BaseFragment implements CouponsRecyclerA
 
             //默认登录会员账号只要有会员卡就要选中
 
-            String discount = card.getString("discount");
+            String discount = card.optString("discount");
             if (!TextUtils.isEmpty(discount)) {
 
                 Log.d(TAG, "onEvent: discount= " + discount);
@@ -561,18 +632,37 @@ public class ClientInfoFragment extends BaseFragment implements CouponsRecyclerA
                 EventBus.getDefault().post(messageEventVip);
             }
         } catch (JSONException e) {
+
             e.printStackTrace();
         }
 
     }
 
     @Override
+    public void setUserVisibleHint(boolean isVisibleToUser) {
+
+        Log.d(TAG, "setUserVisibleHint: isVisibleToUser= "+isVisibleToUser);
+        super.setUserVisibleHint(isVisibleToUser);
+    }
+
+    @Override
     public void onDestroy() {
         discountBean = null;
+        userId = null;
         super.onDestroy();
-       // EventBus.getDefault().unregister(this);
+        // EventBus.getDefault().unregister(this);
 
 
     }
+
+    @Override
+    public void onHiddenChanged(boolean hidden) {
+        super.onHiddenChanged(hidden);
+
+        Log.d(TAG, "onHiddenChanged: hideen= "+hidden);
+
+    }
+
+
 
 }

@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout android:orientation="vertical"
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    
+    <android.support.constraint.ConstraintLayout
+        android:layout_width="420dp"
+        android:background="@drawable/shape_round_solid_white"
+        android:orientation="vertical"
+        android:layout_centerInParent="true"
+
+        android:paddingBottom="20dp"
+        android:layout_height="wrap_content">
+
+
+        <ImageView
+            android:id="@+id/iv_close"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintRight_toRightOf="parent"
+            android:src="@drawable/close"
+            android:layout_width="26dp"
+            android:layout_height="26dp"
+            android:layout_marginRight="10dp"
+            android:layout_marginTop="10dp"
+
+
+            />
+        <TextView
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintRight_toRightOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/iv_close"
+            android:id="@+id/tv_again_pay"
+            android:text="重新支付"
+            android:layout_marginTop="20dp"
+            android:gravity="center"
+            android:paddingBottom="15dp"
+
+            android:paddingTop="15dp"
+            android:textColor="@color/TvWhite"
+            android:background="@drawable/shape_round_blue"
+            android:layout_width="200dp"
+            android:layout_height="wrap_content"
+            />
+
+        <TextView
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintRight_toRightOf="parent"
+            android:id="@+id/tv_query_status"
+            android:text="查询订单状态"
+            android:paddingBottom="15dp"
+            android:paddingTop="15dp"
+            android:gravity="center"
+            android:enabled="false"
+            app:layout_constraintTop_toBottomOf="@id/tv_again_pay"
+            android:textColor="@color/select_enable_blue_disenable_gray"
+            android:layout_marginTop="20dp"
+            android:background="@drawable/select_enable_blue_gray"
+            android:layout_width="200dp"
+            android:layout_height="wrap_content"
+            />
+        <TextView
+            app:layout_constraintTop_toBottomOf="@id/tv_query_status"
+            android:id="@+id/tv_status"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintRight_toRightOf="parent"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="正在支付中..."
+            android:layout_marginTop="20dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            android:layout_marginBottom="10dp"
+            android:textColor="@color/TvBlack"
+
+            />
+
+
+        <ProgressBar
+            android:id="@+id/pb_progress"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintRight_toRightOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            android:indeterminateTint="@color/TvBlue"
+            android:visibility="gone"
+
+            />
+    </android.support.constraint.ConstraintLayout>
+    
+</RelativeLayout>

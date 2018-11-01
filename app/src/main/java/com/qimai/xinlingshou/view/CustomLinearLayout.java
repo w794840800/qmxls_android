@@ -33,9 +33,9 @@ public class CustomLinearLayout extends LinearLayout {
                 (DrawerLayout.LayoutParams) view.getLayoutParams();*/
        // Log.d(TAG, "onInterceptTouchEvent: state = "+lp.openState);
 
-        /* Class<?>test = lp.getClass();
+        /* Class<?>select_enable_disenable = lp.getClass();
         try {
-            Field field = test.getDeclaredField("openState");
+            Field field = select_enable_disenable.getDeclaredField("openState");
 
             field.setAccessible(true);
             Log.d(TAG, "onInterceptTouchEvent: openState= "+field.get(lp));

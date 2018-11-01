@@ -1,14 +1,20 @@
 package com.qimai.xinlingshou.activity;
 
-import android.bluetooth.BluetoothAdapter;
-import android.bluetooth.BluetoothDevice;
-import android.bluetooth.BluetoothSocket;
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.res.Configuration;
 import android.graphics.Rect;
+import android.hardware.usb.UsbDevice;
+import android.hardware.usb.UsbManager;
+import android.net.ConnectivityManager;
+import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Debug;
 import android.os.PersistableBundle;
+import android.support.annotation.Nullable;
 import android.support.annotation.RequiresApi;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
@@ -25,12 +31,16 @@ import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.Toast;
 
+import com.dianping.logan.Logan;
+import com.qimai.xinlingshou.App;
 import com.qimai.xinlingshou.BaseFragment;
 import com.qimai.xinlingshou.R;
+import com.qimai.xinlingshou.Receiver.NetWorkReceiver;
 import com.qimai.xinlingshou.bean.goodsBean;
+import com.qimai.xinlingshou.bean.ordersBean;
 import com.qimai.xinlingshou.fragment.PaySucessFragment;
 import com.qimai.xinlingshou.fragment.left.LeftFragmentType;
-import com.qimai.xinlingshou.fragment.left.Left_crashier_fragment;
+import com.qimai.xinlingshou.fragment.left.LeftOrderListFragment;
 import com.qimai.xinlingshou.fragment.left.Left_setting_fragment;
 import com.qimai.xinlingshou.fragment.right.ChangeGoodsCountFragment;
 import com.qimai.xinlingshou.fragment.right.ClientInfoFragment;
@@ -42,6 +52,7 @@ import com.qimai.xinlingshou.fragment.right.SettingPayViewFragment;
 import com.qimai.xinlingshou.fragment.right.SettingSystemViewFragment;
 import com.qimai.xinlingshou.fragment.right.UnSelectFragment;
 import com.qimai.xinlingshou.ui.BaseActivity;
+import com.qimai.xinlingshou.utils.DBCopyUtils;
 import com.qimai.xinlingshou.utils.ScanGun;
 import com.qimai.xinlingshou.utils.ToastUtils;
 
@@ -49,11 +60,16 @@ import com.qimai.xinlingshou.utils.ToastUtils;
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
+import org.litepal.LitePal;
+import org.litepal.tablemanager.Connector;
 
-import java.io.File;
-import java.io.OutputStream;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import java.util.UUID;
+import java.util.Map;
 
 import butterknife.BindView;
 import io.reactivex.Observable;
@@ -61,7 +77,7 @@ import io.reactivex.disposables.Disposable;
 
 import static android.support.v4.widget.DrawerLayout.LOCK_MODE_LOCKED_OPEN;
 import static android.support.v4.widget.DrawerLayout.LOCK_MODE_UNLOCKED;
-
+import com.qimai.xinlingshou.fragment.left.Left_crashier_fragment;
 public class MainActivity extends BaseActivity implements View.OnClickListener, UsbDetachedReceiver.UsbDetachedListener{
 
 //    public static final boolean isMain = Build.MODEL.equals("t1host") || Build.MODEL.contains("T1")||Build.MODEL.contains("T2")||Build.MODEL.contains("S2")||Build.MODEL.contains("D2");
@@ -84,6 +100,8 @@ public class MainActivity extends BaseActivity implements View.OnClickListener, 
     public  BaseFragment right_crashier_fragment;
     public  BaseFragment left_crashiner_fragment;
     public  BaseFragment left_setting_fragment;
+    public  BaseFragment left_order_fragment;
+
     public  BaseFragment settingSystemViewFragment;
     public  BaseFragment changeGoodsCountFragment;
     public  BaseFragment unSelectGoodsFragment;
@@ -95,14 +113,40 @@ public class MainActivity extends BaseActivity implements View.OnClickListener, 
     long exitTime = 0;
 
 
+    Intent netWorkIntent;
+
+    IntentFilter intentFilter;
+    NetWorkReceiver netWorkReceiver;
+
+
+    UsbReceiver usbReceiver;
+
+    IntentFilter usbIntentFilter;
+
+    OnRightTopScanStatusChange onRightTopScanStatusChange;
 
 
 
     @Override
     protected void initData() {
+
+        ToastUtils.showLongToast("test tinker");
+        DBCopyUtils.copyDataBaseToSD();
+
+
+        Logan.w("hello logan",1);
+        Logan.f();
+
+      /*  UsbManager usbManager = (UsbManager) getSystemService(USB_SERVICE);
+
+       // HashMap<>
+        usbManager.getDe4
+        viceList();*/
+
+       // changeData();
        /* DownloadUtils downloadUtils = new DownloadUtils(this);
         downloadUtils.downloadAPK("http://dl-cdn.coolapkmarket.com/down/apk_file/2018/0717/com.coolapk.market-8.5-1807171.apk?_upt=e29b5a4e1531800723"
-                ,"test.apk");*/
+                ,"select_enable_disenable.apk");*/
 
 
         //Environment.getDataDirectory();  /data
@@ -112,88 +156,118 @@ public class MainActivity extends BaseActivity implements View.OnClickListener, 
 //        Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM);/storage/sdcard0/DCIM
 
 
+        /*try {
+            Thread.sleep(100000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }*/
+        //changeData();
+        intentFilter = new IntentFilter();
+
+        intentFilter.addAction(WifiManager.WIFI_STATE_CHANGED_ACTION);
+        intentFilter.addAction(WifiManager.NETWORK_STATE_CHANGED_ACTION);
+        intentFilter.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
+
+        netWorkReceiver = new NetWorkReceiver();
+
+        registerReceiver(netWorkReceiver,intentFilter);
+
+
         EventBus.getDefault().register(this);
 
         // 设置key事件最大间隔，默认20ms，部分低端扫码枪效率低
-        ScanGun.setMaxKeysInterval(50);
-        mScanGun = new ScanGun(new ScanGun.ScanGunCallBack() {
-            @Override
-            public void onScanFinish(String scanResult) {
-
-
-                ((InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE)).
-                        hideSoftInputFromWindow(MainActivity.this.
-                        getCurrentFocus().getWindowToken(), InputMethodManager.HIDE_NOT_ALWAYS);
-               if (TextUtils.isEmpty(scanResult)){
-
-                   return;
-               }
-//                ToastUtils.showShortToast(scanResult);
-                Log.d(TAG, "" +
-                        "" +
-                        "" +
-                        ": scanResult= "+scanResult);
-                Toast.makeText(MainActivity.this, "数据： "+scanResult, Toast.LENGTH_SHORT).show();
-                MessageEvent messageEvent = new MessageEvent("ThridFragmentPay");
-                messageEvent.setAuthCode(scanResult);
-                //messageEvent.setAuthCode("6914068019529");
-
-                String values = scanResult.substring(0,2);
-                if (((values.contains("10")
-                        ||values.contains("28")
-                //18 91 62 51
-                        ||values.contains("11")
-                        ||values.contains("12")
-                        ||values.contains("13")
-                        ||values.contains("14")
-                        ||values.contains("15")
-                        ||values.contains("18")
-                        ||values.contains("91")
-                        ||values.contains("51")
-                        ||values.contains("62"))
-                        &&(scanResult.length()==18))){
-
-
-                } if (values.equals("62")&&scanResult.length()==19){
 
 
 
-                }
+    }
+
+    private void changeData() {
 
 
-                EventBus.getDefault().post(messageEvent);
+        List<ordersBean> ordersBeanArrayList = (List<ordersBean>) LitePal.where("store_id is null").find(ordersBean.class);
 
-            }
+        Log.d(TAG, "changeData: ordersBeanArrayList sioze= "+ordersBeanArrayList.size());
 
-            @Override
-            protected Object clone() throws CloneNotSupportedException {
-                return super.clone();
-            }
-        });
+        //ordersBean ordersBean = ordersBeanArrayList.get(0);
+        String storeId = App.store.getString("storeId");
+
+       //ordersBean.setStore_id(storeId);
+        //boolean isSave = ordersBean.save();
+
+       // Log.d(TAG, "changeData: sql save= "+isSave);
+
+
+        for (ordersBean o:
+             ordersBeanArrayList) {
+
+            Log.d(TAG, "changeData: o= "+o.toString()+" size= "+ordersBeanArrayList.size());
+
+            o.setStore_id(storeId);
+            boolean isSave = o.save();
+
+            Log.d(TAG, "changeData: isSave= "+isSave);
+            //App.store("").getString()
+            //o.setUserid();
+
+        }
+       // DBCopyUtils.copyDataBaseToSD();
+
+
+        Connector.getDatabase();
+
+
+
 
     }
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
-        Log.d(TAG, "onKeyDown: keyvode= "+keyCode);
         mScanGun.isMaybeScanning(keyCode, event);
-
-        if (event.getKeyCode()==KeyEvent.KEYCODE_BACK) {
-            if (System.currentTimeMillis() - exitTime > 2000) {
-
-                ToastUtils.showShortToast("再按一次退出");
-                Log.d(TAG, "onKeyDown: fuzhi2");
-                exitTime = System.currentTimeMillis();
-            } else {
-                finish();
-                System.exit(0);
-
-            }
-
-            return true;
-        }
         return super.onKeyDown(keyCode,event);
     }
+
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        // 拦截物理键盘事件
+
+        Log.d(TAG, "dispatchKeyEvent: event= "+event.getDeviceId()+" "+event.toString());
+        if (event.getKeyCode() > 6) {
+            if (event.getAction() == KeyEvent.ACTION_DOWN) {
+                if(event.getKeyCode()==KeyEvent.KEYCODE_DEL){//将键盘的删除键传递下去
+                    return super.dispatchKeyEvent(event);
+                }
+                this.onKeyDown(event.getKeyCode(), event);
+            }
+        }else{
+            if(event.getKeyCode()==KeyEvent.KEYCODE_BACK){//将键盘的返回事件传递下去
+                return super.dispatchKeyEvent(event);
+            }
+        }
+        return true;
+    }
+
+
+    //    @Override
+//    public boolean onKeyDown(int keyCode, KeyEvent event) {
+//        Log.d(TAG, "onKeyDown: keyvode= "+keyCode);
+//        mScanGun.isMaybeScanning(keyCode, event);
+//
+//        if (event.getKeyCode()==KeyEvent.KEYCODE_BACK) {
+//            if (System.currentTimeMillis() - exitTime > 2000) {
+//
+//                ToastUtils.showShortToast("再按一次退出");
+//                Log.d(TAG, "onKeyDown: fuzhi2");
+//                exitTime = System.currentTimeMillis();
+//            } else {
+//                finish();
+//                System.exit(0);
+//
+//            }
+//
+//            return true;
+//        }
+//        return super.onKeyDown(keyCode,event);
+//    }
     public Fragment getVisibleFragment(){
         FragmentManager fragmentManager = MainActivity.this.getSupportFragmentManager();
         List<Fragment> fragments = fragmentManager.getFragments();
@@ -203,91 +277,91 @@ public class MainActivity extends BaseActivity implements View.OnClickListener, 
         }
         return null;
     }
-    @Override
-    public boolean dispatchKeyEvent(KeyEvent event) {
-
-
-        Log.d(TAG, "dispatchKeyEvent: name= "+ event.getDevice().getName());
-
-
-        String deviceName = event.getDevice().getName();
-        Log.d(TAG, "dispatchKeyEvent: event= "+event.getKeyCode()+" flag= "+event.getFlags()
-
-        +" event= "+event.toString());
-
-        isSoftShow();
-        /*if ((event.getKeyCode()>=KeyEvent
-                .KEYCODE_0&&event.getKeyCode()<=KeyEvent.KEYCODE_9)
-                &&deviceName.contains("Usb")){
-
-            mScanGun.isMaybeScanning(event.getKeyCode(),event);
-            return super.dispatchKeyEvent(event);
-        }*/
-
-        // 拦截物理键盘事件
-        if (event.getKeyCode() > 6) {
-            if (event.getAction() == KeyEvent.ACTION_DOWN) {
-
-                Log.d(TAG, "dispatchKeyEvent1111: event= "+event.getKeyCode()+" flag= "+event.getFlags()
-
-                        +" event= "+event.toString());
-                if(event.getKeyCode()==KeyEvent.KEYCODE_DEL){//将键盘的删除键传递下去
-                    return super.dispatchKeyEvent(event);
-                }
-
-
-                 //this.onKeyDown(event.getKeyCode(), event);
-               //  if(isShow)
-                if (!isSoftShow()&&event.getDevice().getName().contains("Usb")){
-
-
-                    mScanGun.isMaybeScanning(event.getKeyCode(),event);
-                }else {
-
-
-                   Disposable disposable = Observable.just("").subscribe();
-
-                    if (event.getKeyCode()==KeyEvent.KEYCODE_ENTER){
-
-                        return true;
-                    }
-                     return super.dispatchKeyEvent(event);
-                }
-            }
-        }else{
-            Log.d(TAG, "dispatchKeyEvent: back back");
-            if(event.getKeyCode()==KeyEvent.KEYCODE_BACK){//将键盘的返回事件传递下去
-               
-               if (settingSystemViewFragment.isShow()&&event
-                       .getAction()==KeyEvent.ACTION_UP){
-
-                   Log.d(TAG, "dispatchKeyEvent: System.currentTimeMillis() - exitTime= "
-                   +(System.currentTimeMillis() - exitTime
-                   +" exitText= "+exitTime
-                   ));
-
-                   if (System.currentTimeMillis() - exitTime > 2000) {
-
-                       ToastUtils.showShortToast("再按一次退出");
-                       Log.d(TAG, "dispatchKeyEvent: fuzhi");
-                       exitTime = System.currentTimeMillis();
-                   } else {
-                       finish();
-                       System.exit(0);
-
-                   }
-
-                   Log.d(TAG, "dispatchKeyEvent: idShow");
-
-                   return true;
-               }else{
-                return super.dispatchKeyEvent(event);
-            }
-            }
-        }
-        return true;
-
-    }
+//    @Override
+//    public boolean dispatchKeyEvent(KeyEvent event) {
+//
+//
+//        Log.d(TAG, "dispatchKeyEvent: name= "+ event.getDevice().getName());
+//
+//
+//        String deviceName = event.getDevice().getName();
+//        Log.d(TAG, "dispatchKeyEvent: event= "+event.getKeyCode()+" flag= "+event.getFlags()
+//
+//        +" event= "+event.toString());
+//
+//        isSoftShow();
+//        /*if ((event.getKeyCode()>=KeyEvent
+//                .KEYCODE_0&&event.getKeyCode()<=KeyEvent.KEYCODE_9)
+//                &&deviceName.contains("Usb")){
+//
+//            mScanGun.isMaybeScanning(event.getKeyCode(),event);
+//            return super.dispatchKeyEvent(event);
+//        }*/
+//
+//        // 拦截物理键盘事件
+//        if (event.getKeyCode() > 6) {
+//            if (event.getAction() == KeyEvent.ACTION_DOWN) {
+//
+//                Log.d(TAG, "dispatchKeyEvent1111: event= "+event.getKeyCode()+" flag= "+event.getFlags()
+//
+//                        +" event= "+event.toString());
+//                if(event.getKeyCode()==KeyEvent.KEYCODE_DEL){//将键盘的删除键传递下去
+//                    return super.dispatchKeyEvent(event);
+//                }
+//
+//
+//                 //this.onKeyDown(event.getKeyCode(), event);
+//               //  if(isShow)
+//                if (!isSoftShow()&&event.getDevice().getName().contains("Usb")){
+//
+//
+//                    mScanGun.isMaybeScanning(event.getKeyCode(),event);
+//                }else {
+//
+//
+//                   Disposable disposable = Observable.just("").subscribe();
+//
+//                    if (event.getKeyCode()==KeyEvent.KEYCODE_ENTER){
+//
+//                        return true;
+//                    }
+//                     return super.dispatchKeyEvent(event);
+//                }
+//            }
+//        }else{
+//            Log.d(TAG, "dispatchKeyEvent: back back");
+//            if(event.getKeyCode()==KeyEvent.KEYCODE_BACK){//将键盘的返回事件传递下去
+//
+//               if (settingSystemViewFragment.isShow()&&event
+//                       .getAction()==KeyEvent.ACTION_UP){
+//
+//                   Log.d(TAG, "dispatchKeyEvent: System.currentTimeMillis() - exitTime= "
+//                   +(System.currentTimeMillis() - exitTime
+//                   +" exitText= "+exitTime
+//                   ));
+//
+//                   if (System.currentTimeMillis() - exitTime > 2000) {
+//
+//                       ToastUtils.showShortToast("再按一次退出");
+//                       Log.d(TAG, "dispatchKeyEvent: fuzhi");
+//                       exitTime = System.currentTimeMillis();
+//                   } else {
+//                       finish();
+//                       System.exit(0);
+//
+//                   }
+//
+//                   Log.d(TAG, "dispatchKeyEvent: idShow");
+//
+//                   return true;
+//               }else{
+//                return super.dispatchKeyEvent(event);
+//            }
+//            }
+//        }
+//        return true;
+//
+//    }
 
     private boolean isSoftShow() {
 
@@ -342,16 +416,15 @@ public class MainActivity extends BaseActivity implements View.OnClickListener, 
     @Override
     protected void initView(View rootView) {
 
-        File file = getDatabasePath("qimai_xls");
 
-        if (file.exists()){
+        usbIntentFilter = new IntentFilter();
+        usbIntentFilter.addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED);
 
-            Log.d(TAG, "initView: file name = "+file.getName());
-        }else{
+        usbIntentFilter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED);
+       // usbIntentFilter.addAction("android.hardware.usb.action.USB_STATE");
 
-            Log.d(TAG, "initView: file not exit");
-        }
-
+        usbReceiver = new UsbReceiver();
+        registerReceiver(usbReceiver,usbIntentFilter);
         /*fragmentManager = getSupportFragmentManager();
         settingSystemViewFragment = new SettingSystemViewFragment();
         left_setting_fragment = new Left_setting_fragment();
@@ -411,6 +484,8 @@ public class MainActivity extends BaseActivity implements View.OnClickListener, 
         return R.layout.cashier_activity;
     }
 
+
+
     public void showPayFragment() {
 
         showRightFragment(RightFragmentType.PAY);
@@ -428,19 +503,36 @@ public class MainActivity extends BaseActivity implements View.OnClickListener, 
         //drawerLayout.setScrimColor(0x00ffffff);
         //drawerLayout.setAlpha(1f);
     }
+    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
+    public void showCrashierLayout() {
+
+        drawerLayout.setDrawerLockMode(LOCK_MODE_LOCKED_OPEN);
+        LinearLayout.LayoutParams layoutParams1 = new LinearLayout.
+                LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT
+                ,1f);
+
+        LeftFramContainer.setLayoutParams(layoutParams1);
+
+        LinearLayout.LayoutParams layoutParams3 = new LinearLayout.
+                LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT
+                ,2f);
+        rightFragmentContainer.setLayoutParams(layoutParams3);
+        showLeftFragment(LeftFragmentType.LEFT_CRASHIER);
+        showRightFragment(RightFragmentType.RIGHT_CRASHIER);
+        drawerLayout.closeDrawers();
+        ViewGroup.MarginLayoutParams layoutParams =
+                (ViewGroup.MarginLayoutParams) ll_main.getLayoutParams();
+        drawerLayout.setScrimColor(0x99000000);
+        layoutParams.setMarginStart(0);
+        drawerLayout.setDrawerLockMode(LOCK_MODE_UNLOCKED);
+        ll_main.setLayoutParams(layoutParams);
+
+    }
 
 
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
     public void showSettingLayout() {
-        /*ViewGroup.MarginLayoutParams layoutParams = (ViewGroup.MarginLayoutParams)
-                ll_main.getLayoutParams();
-        drawerLayout.setScrimColor(0x00ffffff);
-        layoutParams.setMarginStart(200);
-        drawerLayout.setDrawerLockMode(LOCK_MODE_LOCKED_OPEN);
-        ll_main.setLayoutParams(layoutParams);*/
 
-
-        //.setVisibility(View.GONE);
         //动态算出侧滑菜单大小，设置给linearlayout margin
         //动态设置左右两侧的权重
         ViewGroup.MarginLayoutParams layoutParams = (ViewGroup.MarginLayoutParams)
@@ -504,16 +596,69 @@ public class MainActivity extends BaseActivity implements View.OnClickListener, 
     protected void onResume() {
         super.onResume();
 
+//Debug.stopMethodTracing();
 
-        Log.d(TAG, " finish initView: "+(getSupportFragmentManager().beginTransaction().isEmpty())
 
-                +"   "+getSupportFragmentManager().getBackStackEntryCount());
+        mScanGun = new ScanGun(new ScanGun.ScanGunCallBack() {
+            @Override
+            public void onScanFinish(String scanResult) {
+                /* Toast.makeText(MainActivity.this, "数据： "+scanResult, Toast.LENGTH_SHORT).show();*/
+                ((InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE)).
+                        hideSoftInputFromWindow(MainActivity.this.
+                                getCurrentFocus().getWindowToken(), InputMethodManager.HIDE_NOT_ALWAYS);
+                if (TextUtils.isEmpty(scanResult)){
+
+                    return;
+                }
+//                ToastUtils.showShortToast(scanResult);
+                Log.d(TAG, "" +
+                        "" +
+                        "" +
+                        ": scanResult= "+scanResult);
+//
+                MessageEvent messageEvent = new MessageEvent("ThridFragmentPay");
+                messageEvent.setAuthCode(scanResult);
+                //messageEvent.setAuthCode("6914068019529");
+
+                String values = scanResult.substring(0,2);
+                if (((values.contains("10")
+                        ||values.contains("28")
+                        //18 91 62 51
+                        ||values.contains("11")
+                        ||values.contains("12")
+                        ||values.contains("13")
+                        ||values.contains("14")
+                        ||values.contains("15")
+                        ||values.contains("18")
+                        ||values.contains("91")
+                        ||values.contains("51")
+                        ||values.contains("62"))
+                        &&(scanResult.length()==18))){
+
+
+                } if (values.equals("62")&&scanResult.length()==19){
+
+
+
+                }
+
+
+                EventBus.getDefault().post(messageEvent);
+
+            }
+
+            @Override
+            protected Object clone() throws CloneNotSupportedException {
+                return super.clone();
+            }
+        });
+
+        mScanGun.setMaxKeysInterval(2000);
+
+
     }
 
-    private void transfer() {
 
-
-    }
     public void addAllLeftFragent(FragmentTransaction fragmentTransaction) {
 
         if (left_setting_fragment == null) {
@@ -539,6 +684,11 @@ public class MainActivity extends BaseActivity implements View.OnClickListener, 
             fragmentTransaction.add(R.id.fl_left_container, left_crashiner_fragment);
         }
 
+        if (left_order_fragment == null) {
+
+            left_order_fragment = new LeftOrderListFragment();
+            fragmentTransaction.add(R.id.fl_left_container, left_order_fragment);
+        }
         fragmentTransaction.commit();
 
     }
@@ -557,7 +707,9 @@ public class MainActivity extends BaseActivity implements View.OnClickListener, 
         //FragmentTransaction fragmentTransaction1 = getSupportFragmentManager().beginTransaction();
         if (right_crashier_fragment == null) {
             right_crashier_fragment = new Right_crashier_fragment();
+
             fragmentTransaction.add(R.id.right_container, right_crashier_fragment)
+            // .addToBackStack(null)
             // .addToBackStack(null)
             ;
 
@@ -645,6 +797,14 @@ public class MainActivity extends BaseActivity implements View.OnClickListener, 
                         .commit()
                 ;
                 break;
+
+
+            case LEFT_ORDER:
+                Log.d(TAG, "showLeftFragment: LEFT_CRASHIER");
+                fragmentTransaction.show(left_order_fragment)
+                        .commit()
+                ;
+                break;
         }
 
 
@@ -671,6 +831,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener, 
                 break;
 
             case RIGHT_CRASHIER:
+
 
                 fragmentTransaction.show(right_crashier_fragment);
                 break;
@@ -718,6 +879,13 @@ public class MainActivity extends BaseActivity implements View.OnClickListener, 
             fragmentTransaction.hide(left_setting_fragment);
 
         }
+
+        if (left_order_fragment != null) {
+
+            fragmentTransaction.hide(left_order_fragment);
+
+        }
+           // fragmentTransaction.commit();
 
     }
 
@@ -770,33 +938,6 @@ public class MainActivity extends BaseActivity implements View.OnClickListener, 
     }
 
 
-    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
-    public void showCrashierLayout() {
-
-
-
-        drawerLayout.setDrawerLockMode(LOCK_MODE_LOCKED_OPEN);
-        LinearLayout.LayoutParams layoutParams1 = new LinearLayout.
-                LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT
-                ,1f);
-
-        LeftFramContainer.setLayoutParams(layoutParams1);
-
-        LinearLayout.LayoutParams layoutParams3 = new LinearLayout.
-                LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT
-                ,2f);
-        rightFragmentContainer.setLayoutParams(layoutParams3);
-        showLeftFragment(LeftFragmentType.LEFT_CRASHIER);
-        showRightFragment(RightFragmentType.RIGHT_CRASHIER);
-        drawerLayout.closeDrawers();
-        ViewGroup.MarginLayoutParams layoutParams =
-                (ViewGroup.MarginLayoutParams) ll_main.getLayoutParams();
-        drawerLayout.setScrimColor(0x99000000);
-        layoutParams.setMarginStart(0);
-        drawerLayout.setDrawerLockMode(LOCK_MODE_UNLOCKED);
-        ll_main.setLayoutParams(layoutParams);
-
-    }
 
 
     public void onGoodsSelected(goodsBean goodsBean) {
@@ -915,7 +1056,22 @@ public class MainActivity extends BaseActivity implements View.OnClickListener, 
     public boolean getRightClientLoginFragmentVisibity(){
 
 
+
         return ((Right_crashier_fragment)right_crashier_fragment).getright_client_fragmentVisibity();
+
+    }
+
+    public boolean getRightVipInfoFragmentVisibity(){
+
+
+        return ((Right_crashier_fragment)right_crashier_fragment).getRight_vip_info_fragmentVisibity();
+
+    }
+
+    public boolean getRightRechargeFragmentVisibity(){
+
+
+        return ((Right_crashier_fragment)right_crashier_fragment).getRight_value_fragmentVisibity();
 
     }
 
@@ -976,7 +1132,11 @@ public class MainActivity extends BaseActivity implements View.OnClickListener, 
     protected void onDestroy() {
         super.onDestroy();
 
-EventBus.getDefault().unregister(this);
+        EventBus.getDefault().unregister(this);
+
+        unregisterReceiver(netWorkReceiver);
+
+        unregisterReceiver(usbReceiver);
 
         Log.d(TAG, "onDestroy: ");
     }
@@ -996,4 +1156,210 @@ EventBus.getDefault().unregister(this);
         }
 
     }
+    // 第一次按下返回键的事件
+    private long firstPressedTime;
+
+    // System.currentTimeMillis() 当前系统的时间
+    @Override
+    public void onBackPressed() {
+        if (System.currentTimeMillis() - firstPressedTime < 2000) {
+            super.onBackPressed();
+        } else {
+            Toast.makeText(MainActivity.this, "再按一次退出", Toast.LENGTH_SHORT).show();
+            firstPressedTime = System.currentTimeMillis();
+        }
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
+    public void showOrderLayout() {
+
+        //动态算出侧滑菜单大小，设置给linearlayout margin
+        //动态设置左右两侧的权重
+        ViewGroup.MarginLayoutParams layoutParams = (ViewGroup.MarginLayoutParams)
+                ll_main.getLayoutParams();
+        drawerLayout.setScrimColor(0x00ffffff);
+        int slideWidth = drawerLayout.getChildAt(1).getMeasuredWidth();
+        Log.d("TAG", "showSettingLayout: width = "+slideWidth);
+        layoutParams.setMarginStart(slideWidth);
+        ll_main.setLayoutParams(layoutParams);
+        drawerLayout.setDrawerLockMode(LOCK_MODE_LOCKED_OPEN);
+        drawerLayout.setClickable(true);
+        //drawerLayout.closeDrawers();
+        LinearLayout.LayoutParams layoutParams1 = new LinearLayout.
+                LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT
+                ,29f);
+
+
+        LeftFramContainer.setLayoutParams(layoutParams1);
+
+        LinearLayout.LayoutParams layoutParams3 = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT
+                ,50f);
+        rightFragmentContainer.setLayoutParams(layoutParams3);
+
+        showLeftFragment(LeftFragmentType.LEFT_ORDER);
+        showRightFragment(RightFragmentType.SETTING_SYSTEM_VIEW);
+
+
+
+    }
+
+
+    class UsbReceiver extends BroadcastReceiver{
+        @Override
+        public void onReceive(Context context, Intent intent) {
+
+            UsbDevice usbDevice1 = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
+
+
+            Log.d(TAG, "onReceive: usbDevice1= "+usbDevice1.toString());
+           int type =  usbDevice1.getInterface(0).getInterfaceClass();
+
+            Log.d(TAG, "onReceive: type= "+type);
+           //https://blog.csdn.net/Rodulf/article/details/51916998?utm_source=blogxgwz9
+           //type=3 表示是扫码枪
+
+
+            Log.d(TAG, "onReceive: usbdevice11111= "+usbDevice1.toString());
+
+            if (intent.getAction()==UsbManager.ACTION_USB_DEVICE_ATTACHED){
+
+                if (type==3){
+
+
+                    notifyScanCodeStauts(true);
+                }
+
+                Log.d(TAG, "onReceive: usbdevice11111 ACTION_USB_DEVICE_ATTACHED");
+            }else{
+
+                if (type==3){
+
+                    notifyScanCodeStauts(false);
+                }
+
+                Log.d(TAG, "onReceive: usbdevice11111 ACTION_USB_DEVICE_DETACHED");
+            }
+            
+            
+
+            //ToastUtils.showShortToast("usbusb");
+           // detectInputDeviceWithShell();
+
+            UsbManager usbManager = (UsbManager) getSystemService(USB_SERVICE);
+
+            HashMap<String,UsbDevice> usbDeviceHashMap = usbManager.getDeviceList();
+
+
+
+            try { //获得外接USB输入设备的信息
+                Process p= null;
+                try {
+                    p = Runtime.getRuntime().exec("cat /proc/bus/input/devices");
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                BufferedReader in = new BufferedReader(new InputStreamReader(p.getInputStream()));
+                 String line = null;
+                 while((line = in.readLine())!= null){
+
+                     String deviceInfo = line.trim();
+
+                     //Log.d(TAG, "onReceive: deviceInfo= "+deviceInfo);
+                 }
+
+
+                 //对获取的每行的设备信息进行过滤，获得自己想要的。 } catch (Exception e) { // TODO: handle exception e.printStackTrace(); } *deviceinfo中包含每个设备的pid和vid*
+
+
+
+           // Log.d(TAG, "onReceive: onReceive: usbDevice= "+usbDeviceHashMap.size());
+
+
+
+
+                for (Map.Entry<String, UsbDevice> entry : usbDeviceHashMap.entrySet()) {
+
+                    /*Log.d(TAG, "onReceive: Key = " + entry.getKey() + ", Value = " + entry.getValue().toString());*/
+
+                }
+
+
+
+
+
+            for (int i = 0; i < usbDeviceHashMap.size(); i++) {
+
+
+
+                UsbDevice usbDevice = usbDeviceHashMap.get(i);
+
+                if (usbDevice!=null){
+
+                    //Log.d(TAG, "onReceive: usbDevice= "+usbDevice.toString());
+                }
+                //Log.d(TAG, "onReceive: usbDevice = "+usbDevice.getDeviceName()+" i= "+i);
+
+                /*Log.d(TAG, "onReceive: deviceName= "+(usbDeviceHashMap.get(i).getDeviceName()));*/
+            }
+
+
+            //Log.d(TAG, "onReceive: intent= "+intent.getAction());
+        } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+}
+
+
+    private void detectInputDeviceWithShell() {
+        try {
+            //获得外接USB输入设备的信息
+            Process p = Runtime.getRuntime().exec("cat /proc/bus/input/devices");
+            BufferedReader in = new BufferedReader(new InputStreamReader(p.getInputStream()));
+            String line = null;
+            while ((line = in.readLine()) != null) {
+                String deviceInfo = line.trim();
+                //对获取的每行的设备信息进行过滤，获得自己想要的。
+//                if (deviceInfo.contains("Name="))
+                Log.d(TAG, "detectInputDeviceWithShell: " + deviceInfo);
+            }
+            Log.d(TAG, "-----------------------");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    //更新扫码枪状态
+    public void notifyScanCodeStauts(boolean isConnect){
+
+        Log.d(TAG, "notifyScanCodeStauts: isConnect= "+isConnect);
+
+        //((Right_crashier_fragment)right_crashier_fragment).onScanCodeChange(isConnect);
+         MessageEvent  messageEvent = new MessageEvent(MessageEvent.SCAN_CODE_CONNECT);
+
+        messageEvent.setTypeBoolean(isConnect);
+
+        Log.d(TAG, "notifyScanCodeStauts: onRightTopScanStatusChange= "+(onRightTopScanStatusChange==null));
+        if (onRightTopScanStatusChange!=null){
+
+            onRightTopScanStatusChange.onScanCodeChange(isConnect);
+        }
+
+      EventBus.getDefault().post(messageEvent);
+
+    }
+
+    public void setOnRightTopScanStatusChange(OnRightTopScanStatusChange onRightTopScanStatusChange) {
+        Log.d(TAG, "setOnRightTopScanStatusChange: ");
+        this.onRightTopScanStatusChange = onRightTopScanStatusChange;
+    }
+
+    public interface OnRightTopScanStatusChange{
+
+        void onScanCodeChange(boolean status);
+
+    }
+
 }

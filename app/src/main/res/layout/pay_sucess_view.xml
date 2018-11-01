@@ -37,6 +37,8 @@
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
     android:textSize="22sp"
+    android:textColor="#000"
+
     android:text="收款"
     />
         <TextView
@@ -46,6 +48,8 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textSize="22sp"
+            android:textColor="#000"
+
             android:text="100.00元"
             />
         <TextView
@@ -55,6 +59,8 @@
             android:textSize="22sp"
             android:layout_marginLeft="30dp"
             android:text="找零"
+            android:textColor="#000"
+
             />
         <TextView
             android:id="@+id/tv_return_money"
@@ -64,8 +70,65 @@
             android:layout_height="wrap_content"
             android:textSize="22sp"
             android:text="50.00元"
+            android:textColor="#000"
+
             />
     </LinearLayout>
+
+
+
+    <!--储值充值-->
+
+    <LinearLayout
+        android:visibility="gone"
+        android:id="@+id/ll_recharge"
+        android:layout_width="wrap_content"
+        android:orientation="horizontal"
+        android:layout_height="wrap_content">
+        <TextView
+            android:id="@+id/tv_recharge_method"
+            android:layout_marginTop="20dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="22sp"
+            android:text="微信支付"
+            android:textColor="#000"
+
+            />
+        <TextView
+            android:id="@+id/tv_recharge_money"
+            android:layout_marginLeft="10dp"
+            android:layout_marginTop="20dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="22sp"
+            android:text="100.00元"
+            android:textColor="#000"
+
+            />
+        <TextView
+            android:layout_marginTop="20dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="22sp"
+            android:textColor="#000"
+
+            android:layout_marginLeft="30dp"
+            android:text="账户余额"
+            />
+        <TextView
+            android:id="@+id/tv_recharge_balance_total"
+            android:layout_marginLeft="10dp"
+            android:layout_marginTop="20dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="22sp"
+            android:textColor="#000"
+            android:text="50.00元"
+            />
+    </LinearLayout>
+
+
 
 
     <!--余额支付-->
@@ -81,6 +144,8 @@
             android:layout_height="wrap_content"
             android:textSize="22sp"
             android:text="余额支付"
+            android:textColor="#000"
+
             />
         <TextView
             android:id="@+id/tv_balance_total"
@@ -90,12 +155,16 @@
             android:layout_height="wrap_content"
             android:textSize="22sp"
             android:text="100.00元"
+            android:textColor="#000"
+
             />
         <TextView
             android:layout_marginTop="20dp"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textSize="22sp"
+            android:textColor="#000"
+
             android:layout_marginLeft="30dp"
             android:text="账户内剩余金额"
             />
@@ -106,6 +175,8 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textSize="22sp"
+            android:textColor="#000"
+
             android:text="50.00元"
             />
     </LinearLayout>
@@ -131,6 +202,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textSize="22sp"
+                android:textColor="#000"
+
                 android:text="混合支付"
                 />
             <TextView
@@ -140,6 +213,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textSize="22sp"
+                android:textColor="#000"
+
                 android:text="100.00元"
                 />
 
@@ -158,6 +233,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textSize="16sp"
+                android:textColor="#000"
+
                 android:text="(余额支付: "
                 />
             <TextView
@@ -167,14 +244,19 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textSize="16sp"
+                android:textColor="#000"
+
                 android:text="150.00元"
                 />
 
             <TextView
+                android:id="@+id/tv_other_pay_method"
                 android:layout_marginTop="10dp"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textSize="16sp"
+                android:textColor="#000"
+
                 android:layout_marginLeft="25dp"
                 android:text="微信支付: "
                 />
@@ -185,6 +267,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textSize="18sp"
+                android:textColor="#000"
+
                 android:text="20.00元"
                 />
             <TextView
@@ -193,6 +277,8 @@
                 android:layout_height="wrap_content"
                 android:textSize="18sp"
                 android:text=")"
+                android:textColor="#000"
+
                 />
 
         </LinearLayout>
@@ -215,8 +301,8 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="重打小票"
-            android:paddingLeft="25dp"
-            android:paddingRight="25dp"
+            android:paddingLeft="40dp"
+            android:paddingRight="40dp"
             android:paddingTop="15dp"
             android:paddingBottom="15dp"
             android:background="@drawable/shape_bt_bg"
@@ -224,10 +310,8 @@
             />
         <TextView
             android:id="@+id/tv_continue"
-
-
-            android:paddingLeft="25dp"
-            android:paddingRight="25dp"
+            android:paddingLeft="40dp"
+            android:paddingRight="40dp"
             android:paddingTop="15dp"
             android:paddingBottom="15dp"
             android:layout_width="wrap_content"
@@ -235,8 +319,8 @@
             android:text="继续收款"
             android:layout_marginLeft="30dp"
 
-            android:background="@drawable/shape_bt_bg"
-            android:textColor="#609ee9"
+            android:background="@drawable/shape_shoukuan_bg"
+            android:textColor="@color/TvWhite"
 
             />
     </LinearLayout>

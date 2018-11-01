@@ -1,5 +1,6 @@
 package com.qimai.xinlingshou.fragment.right;
 
+import android.content.Context;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
 import android.text.TextUtils;
@@ -13,6 +14,7 @@ import com.qimai.xinlingshou.App;
 import com.qimai.xinlingshou.BaseFragment;
 import com.qimai.xinlingshou.R;
 import com.qimai.xinlingshou.callback.NetWorkCallBack;
+import com.qimai.xinlingshou.dialog.DialogUtils;
 import com.qimai.xinlingshou.model.ClientModel;
 import com.qimai.xinlingshou.utils.Hint;
 import com.qimai.xinlingshou.utils.ToastUtils;
@@ -36,9 +38,13 @@ import butterknife.Unbinder;
  * Created by NIU on 2018/5/18.
  */
 
-public class Right_client_fragment extends BaseFragment implements ClientInfoFragment.onClientChangeListener{
+public class Right_client_fragment extends BaseFragment implements ClientInfoFragment.onClientChangeListener,ValueCardReChargeFragment.onBackClick{
 
     private static final String TAG = "Right_client_fragment";
+
+    private static final int VIP_INFO = 1;
+    private static final int VALUE_CARD = 2;
+
     @BindView(R.id.tv_vip_id)
     TextView tvVipId;
     @BindView(R.id.tv_key_1)
@@ -86,6 +92,7 @@ public class Right_client_fragment extends BaseFragment implements ClientInfoFra
     String pendOrderNumber;
     String clientNumber;
     ClientInfoFragment clientInfoFragment;
+    ValueCardReChargeFragment valueCardReChargeFragment;
     @BindView(R.id.ll_client)
     LinearLayout llClient;
 
@@ -98,8 +105,8 @@ public class Right_client_fragment extends BaseFragment implements ClientInfoFra
 
     @Override
     public void setUserVisibleHint(boolean isVisibleToUser) {
+        Log.d(TAG, "setUserVisibleHint: isVisibleToUser= "+isVisibleToUser);
         super.setUserVisibleHint(isVisibleToUser);
-
     }
 
     @Override
@@ -126,7 +133,7 @@ public class Right_client_fragment extends BaseFragment implements ClientInfoFra
 
             case R.id.tv_scan_tips:
                 //sendClinentWithUserId("20180918082436560296");
-                SendClient("","2527",2);
+                //SendClient("","2862",2);
                 break;
             case R.id.tv_vip_id:
                 break;
@@ -234,6 +241,8 @@ public class Right_client_fragment extends BaseFragment implements ClientInfoFra
      * */
     public void SendClient(final String mobile,String user_id,int type){
 
+
+        Log.d(TAG, "SendClient: log= "+Log.getStackTraceString(new Throwable()));
    /*     clientModel.searchUserInfo(mobile,user_id,type, new NetWorkCallBack<String>() {
             @Override
             public void onSucess(String data) {
@@ -278,10 +287,11 @@ public class Right_client_fragment extends BaseFragment implements ClientInfoFra
         });*/
 
 
+        DialogUtils.createDialog(getActivity());
 
 
         Log.d(TAG, "SendClient: ");
-        String url = App.API_URL+"reta/cashier/user-by-mobile";
+        String url = App.API_URL+"ptfw/cashier/user-by-mobile";
         Map<String,String> stringMap = new HashMap<>();
 
         stringMap.put("mobile", mobile);
@@ -292,20 +302,22 @@ public class Right_client_fragment extends BaseFragment implements ClientInfoFra
             @Override
             public void onResponse(String str) {
                 try {
+
+                    DialogUtils.cancelDialog();
+
                     JSONObject mjsonObjects = new JSONObject(str);
                     String result = mjsonObjects.getString("status");
                     String message = mjsonObjects.getString("message");
                     if (result.equals("true")) {
-
                         Log.d(TAG, "onResponse: send client_info");
                         clientNumber = mobile;
                         JSONObject mjsonObject = mjsonObjects.getJSONObject("data");
                         MessageEvent messageEvent = new MessageEvent("client_info");
                         messageEvent.setClientinfo(mjsonObject.toString());
-                        EventBus.getDefault().postSticky(messageEvent);
+                        EventBus.getDefault().post(messageEvent);
                         llClient.setVisibility(View.GONE);
                         isVisibity = true;
-                        showFragment(fragmentManager.beginTransaction());
+                        showFragment(fragmentManager.beginTransaction(),VIP_INFO);
                     } else {
                         Hint.Short(getActivity(), message);
                     }
@@ -324,12 +336,30 @@ public class Right_client_fragment extends BaseFragment implements ClientInfoFra
 
     @Override
     public void onClientChange() {
+
         clearAllText();
+
         hideFragment(fragmentManager.beginTransaction());
 
     }
 
+    @Override
+    public void onGoToRecharge() {
+
+        showFragment(fragmentManager.beginTransaction(),VALUE_CARD);
+
+    }
+
+    @Override
+    public void onRefresh(String userId) {
+
+
+        SendClient("",userId,2);
+
+    }
+
     private void clearAllText() {
+        Log.d(TAG, "clearAllText: ");
         userId = new StringBuilder();
         tvVipId.setText("请输入会员手机号，会员号查询");
         llClient.setVisibility(View.VISIBLE);
@@ -347,39 +377,68 @@ public class Right_client_fragment extends BaseFragment implements ClientInfoFra
         if (clientInfoFragment!=null){
             fragmentTransaction
                     .hide(clientInfoFragment)
+                    .hide(valueCardReChargeFragment)
             .commit();
             isVisibity = false;
         }
+
+        /*if (valueCardReChargeFragment!=null){
+            fragmentTransaction
+                    .hide(valueCardReChargeFragment)
+                    .commit();
+        }*/
 
     }
     /***
      * 展示客户信息
      * **/
 
-    public void showFragment(FragmentTransaction fragmentTransaction){
+    public void showFragment(FragmentTransaction fragmentTransaction,int type){
 
 
+        if (type==VIP_INFO){
         if (clientInfoFragment!=null){
 
 
             fragmentTransaction
                     .show(clientInfoFragment)
-
-                    .commit();
+                    .hide(valueCardReChargeFragment)
+                    .commitAllowingStateLoss();
             }
             isVisibity = true;
 
 
+    }else if (type==VALUE_CARD){
+
+            Log.d(TAG, "showFragment: VALUE_CARD");
+            fragmentTransaction
+                    .show(valueCardReChargeFragment)
+                    .hide(clientInfoFragment)
+                    .commit();
+
+        }
     }
     public void addFragment(FragmentTransaction fragmentTransaction){
 
         if (clientInfoFragment==null) {
             clientInfoFragment = new ClientInfoFragment();
             fragmentTransaction.add(R.id.fl_container,
-                    clientInfoFragment,"clientInfo")
-            .commit()
+                    clientInfoFragment,"clientInfo");
+            //.commit();
+
+        }
+
+        if (valueCardReChargeFragment==null){
+
+            valueCardReChargeFragment = new ValueCardReChargeFragment();
+
+            valueCardReChargeFragment.setOnBackClick(this);
+            fragmentTransaction.add(R.id.fl_container,valueCardReChargeFragment,"valuecard");
+            //.commit()
             ;
         }
+        fragmentTransaction.commit();
+
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
@@ -398,6 +457,7 @@ public class Right_client_fragment extends BaseFragment implements ClientInfoFra
 
         }else if (messageEvent.getType().equals("pendingOrderSucess")){
 
+
             pendOrderNumber = clientNumber;
 
         }else if (messageEvent.getType().equals("allDelete")){
@@ -411,6 +471,13 @@ public class Right_client_fragment extends BaseFragment implements ClientInfoFra
 
             Log.d(TAG, "onEvent: scsnCode= "+scanCode);
             sendClinentWithUserId(scanCode);
+        }else if (messageEvent.getType().equals(MessageEvent.BALANCEPAYFINISH)){
+
+            Log.d(TAG, "onEvent: MessageEvent.BALANCEPAYFINISH");
+            String userId = messageEvent.getStringValues();
+
+            SendClient("",userId,2);
+
         }
 
 
@@ -423,5 +490,24 @@ public class Right_client_fragment extends BaseFragment implements ClientInfoFra
         EventBus.getDefault().unregister(this);
     }
 
+
+    @Override
+    public void onBackClick() {
+
+        showFragment(fragmentManager.beginTransaction(),VIP_INFO);
+    }
+
+    public boolean getVipInfoVisibity(){
+
+
+        return clientInfoFragment.isFragmentShow;
+
+    }
+
+    public boolean getValueCardRechargeVisibity(){
+
+        return valueCardReChargeFragment.isFragmentShow;
+
+    }
 
 }

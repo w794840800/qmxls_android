@@ -1,6 +1,7 @@
 package com.qimai.xinlingshou.utils;
 
 import android.content.Context;
+import android.view.Gravity;
 import android.widget.Toast;
 
 import com.qimai.xinlingshou.App;
@@ -50,7 +51,10 @@ public class ToastUtils {
         if (mContext!=null){
 
             if (mToast==null){
+
                 mToast = Toast.makeText(mContext,text,Toast.LENGTH_SHORT);
+
+                mToast.setGravity(Gravity.CENTER,0,0);
 
             }else{
                 mToast.setText(text);

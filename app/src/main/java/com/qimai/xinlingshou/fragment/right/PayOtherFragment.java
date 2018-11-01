@@ -1,6 +1,7 @@
 package com.qimai.xinlingshou.fragment.right;
 
 import android.bluetooth.BluetoothAdapter;
+import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -27,6 +28,7 @@ import butterknife.Unbinder;
 public class PayOtherFragment extends BaseFragment {
 
 
+    private static final String TAG = "PayOtherFragment";
     @BindView(R.id.iv_pay_wechat)
     ImageView ivPayWechat;
     @BindView(R.id.iv_pay_zhifubao)
@@ -35,7 +37,7 @@ public class PayOtherFragment extends BaseFragment {
     ImageView ivPayPos;
     Unbinder unbinder;
     @BindView(R.id.tv_sure_tag)
-    TextView tvSureTag;
+    TextView tvSuptfwg;
     @BindView(R.id.tv_cancel)
     TextView tvCancel;
 
@@ -106,22 +108,15 @@ public class PayOtherFragment extends BaseFragment {
                 //  确认标记....
                 MessageEvent  messageEvent = new MessageEvent("BiaojiPay");
                 if (selected==1){
-                    messageEvent.setIsPay("微信");
+                    //自有微信
+                    messageEvent.setIsPay("5");
+                    //自有支付宝
                 }  if (selected==2){
-                    messageEvent.setIsPay("支付宝");
+                    messageEvent.setIsPay("6");
+                    //自有pos机
                 }  if (selected==3){
-                    messageEvent.setIsPay("POS机");
+                    messageEvent.setIsPay("7");
                 }
-                BluetoothAdapter blueadapter= BluetoothAdapter.getDefaultAdapter();
-
-                if(!AidlUtil.getInstance().isConnect()){
-                    if (blueadapter.isEnabled()) {
-                    ToastUtils.showLongToast("蓝牙已关闭,请先连接！");
-//                    blueadapter.enable();
-                    return;
-                    }
-                }
-
 
                 EventBus.getDefault().postSticky(messageEvent);
 
@@ -138,6 +133,7 @@ public class PayOtherFragment extends BaseFragment {
                 ivPayPos.setImageResource(R.drawable.pay_pos_unchecked);
                 ((MainActivity)activity).showRightCrashierLayout();
                 //设置左侧整单取消与收款可点击
+                Log.d(TAG, "post cancelCollection");
                 EventBus.getDefault().post(new MessageEvent("cancelCollection"));
 
                 break;

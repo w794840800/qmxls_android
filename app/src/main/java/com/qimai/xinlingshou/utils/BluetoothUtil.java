@@ -24,6 +24,7 @@ public class BluetoothUtil {
     private static BluetoothSocket bluetoothSocket;
 
     private static BluetoothAdapter getBTAdapter() {
+
         return BluetoothAdapter.getDefaultAdapter();
     }
 

@@ -6,8 +6,8 @@
     <color name="TvBlue">#609ee9</color>
     <color name="TvBlack">#000</color>
     <color name="TvWhite">#fff</color>
-
     <color name="TvGray">#cccccc</color>
     <color name="TvDefault">#8a000000</color>
-
+    <color name="errorRed">#ef3845</color>
+    <color name="tvGreen">#39ca74</color>
 </resources>

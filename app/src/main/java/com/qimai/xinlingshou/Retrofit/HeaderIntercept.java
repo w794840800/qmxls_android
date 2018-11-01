@@ -26,7 +26,7 @@ public class HeaderIntercept implements Interceptor {
                 .addHeader("Accept","*/*; v=1.0")
                 .addHeader("Referer", App.API_URL)
                 .addHeader("Qm-From","android")
-                .addHeader("Qm-From-Type","reta")
+                .addHeader("Qm-From-Type","ptfwil")
                 .addHeader("Qm-Account-Token",App.store.getString("cookie_auth"))
                 .addHeader("User-Agent","wechatdevtools appservice port/62739")
                 .build();
